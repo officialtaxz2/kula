@@ -24,12 +24,36 @@ done
 docker compose version >/dev/null 2>&1 || error "Docker Compose plugin not installed."
 [[ -f "${CADDYFILE}" ]] || error "Caddyfile not found at ${CADDYFILE}. Set CADDYFILE=/your/path for a non-standard installation."
 
-# Default is the newest published image; pin a release (or roll back) with:
-# sudo KULA_VERSION=x.y.z bash deploy/setup.sh
-KULA_VERSION="${KULA_VERSION:-latest}"
-[[ "$KULA_VERSION" =~ ^([0-9]+\.[0-9]+\.[0-9]+|latest)$ ]] \
-  || error "Invalid KULA_VERSION '${KULA_VERSION}'. Expected x.y.z or latest."
-export KULA_VERSION
+# Default: build the image from this checkout, so `git pull` plus this script
+# deploys the fork's own changes. Run a published upstream image instead with
+# sudo KULA_SOURCE=image bash deploy/setup.sh (newest) or
+# sudo KULA_VERSION=x.y.z bash deploy/setup.sh (pinned release, implies image).
+REPO_DIR="$(cd -- "$ROOT_DIR/.." && pwd)"
+if [[ -n "${KULA_VERSION:-}" ]]; then
+  KULA_SOURCE="${KULA_SOURCE:-image}"
+fi
+KULA_SOURCE="${KULA_SOURCE:-build}"
+case "$KULA_SOURCE" in
+  build)
+    [[ -f "$REPO_DIR/go.mod" && -f "$REPO_DIR/addons/docker/Dockerfile" ]] \
+      || error "No Kula source checkout at ${REPO_DIR}; use KULA_SOURCE=image for the published image."
+    [[ -z "${KULA_VERSION:-}" ]] || error "KULA_VERSION only applies to KULA_SOURCE=image."
+    # Tag each build with its commit (plus -dirty for uncommitted changes) so
+    # the summary shows what is running.
+    REVISION="$(git -c safe.directory="$REPO_DIR" -C "$REPO_DIR" describe --always --dirty --abbrev=12 2>/dev/null || true)"
+    KULA_IMAGE="kula-monitor:${REVISION:-local}"
+    ;;
+  image)
+    KULA_VERSION="${KULA_VERSION:-latest}"
+    [[ "$KULA_VERSION" =~ ^([0-9]+\.[0-9]+\.[0-9]+|latest)$ ]] \
+      || error "Invalid KULA_VERSION '${KULA_VERSION}'. Expected x.y.z or latest."
+    KULA_IMAGE="c0m4r/kula:${KULA_VERSION}"
+    ;;
+  *)
+    error "Invalid KULA_SOURCE '${KULA_SOURCE}'. Expected build or image."
+    ;;
+esac
+export KULA_IMAGE
 
 info "Validating the existing Caddy configuration"
 caddy validate --config "$CADDYFILE" --adapter caddyfile >/dev/null \
@@ -45,9 +69,17 @@ fi
 
 image_of() { docker inspect -f "{{.Config.Image}} {{.Image}}" "$CONTAINER" 2>/dev/null || true; }
 PREVIOUS_IMAGE="$(image_of)"
-info "Pulling and starting c0m4r/kula:${KULA_VERSION} (persistent volume remains intact)"
-compose pull
-compose up -d
+# A failed build or pull stops here and leaves the running container as it is.
+if [[ "$KULA_SOURCE" == "build" ]]; then
+  info "Building ${KULA_IMAGE} from ${REPO_DIR} (persistent volume remains intact)"
+  # The base images are pinned by digest, so no --pull: it only adds Docker Hub requests.
+  compose build || error "Build failed; the running container was left unchanged."
+else
+  info "Pulling ${KULA_IMAGE} (persistent volume remains intact)"
+  compose pull || error "Pull of ${KULA_IMAGE} failed; the running container was left unchanged."
+fi
+info "Starting ${KULA_IMAGE}"
+compose up -d --no-build
 
 info "Waiting for the localhost health endpoint"
 ready=false
