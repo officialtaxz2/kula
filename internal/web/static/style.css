@@ -9,7 +9,7 @@
 
 .dashboard.system-info-active .time-controls,
 .dashboard.system-info-active .time-custom-section,
-.dashboard.system-info-active .chart-search-input,
+.dashboard.system-info-active .command-search,
 .dashboard.system-info-active #btn-pause,
 .dashboard.system-info-active #btn-focus,
 .dashboard.system-info-active #btn-layout {
@@ -1294,6 +1294,7 @@ html.a11y-focus-outline #system-info-title:focus-visible {
     --chart-tooltip-bg: rgba(17, 24, 39, 0.9);
     --chart-tooltip-text: #f1f5f9;
     --chart-tooltip-border: rgba(55, 65, 81, 0.5);
+    --focus-ring: #7cb4f5;
 }
 
 body.light-mode {
@@ -1315,6 +1316,7 @@ body.light-mode {
     --chart-tooltip-bg: rgba(255, 255, 255, 0.95);
     --chart-tooltip-text: #1e293b;
     --chart-tooltip-border: rgba(203, 213, 225, 0.8);
+    --focus-ring: #1d4ed8;
 }
 
 body.light-mode .hostname,
@@ -1489,10 +1491,13 @@ body {
 
 /* ---- Header ---- */
 .header {
+    /* One row: brand and host, the time controls, then search and actions.
+       Narrower screens move the time controls to a second row (see below). */
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 0.75rem 1.5rem;
+    gap: 0.5rem 1rem;
+    min-height: 3.5rem;
+    padding: 0.5rem 1.5rem;
     background: var(--bg-card);
     border-bottom: 1px solid var(--border-color);
     backdrop-filter: blur(10px);
@@ -1508,8 +1513,15 @@ body {
     gap: 0.75rem;
 }
 
+.header-left {
+    flex: none;
+    gap: 0.6rem;
+}
+
 .header-right {
-    flex-wrap: wrap;
+    flex: none;
+    gap: 0.25rem;
+    margin-inline-start: auto;
     justify-content: flex-end;
 }
 
@@ -1518,23 +1530,23 @@ body {
 }
 
 .logo img {
-    width: 2rem;
-    height: 2rem;
+    width: 1.75rem;
+    height: 1.75rem;
     object-fit: contain;
     filter: drop-shadow(0 0 0.02rem rgba(0, 237, 250, 0.711));
     vertical-align: middle;
 }
 
 .header h1 {
-    font-size: 1.1rem;
+    font-size: 0.9rem;
     font-weight: 600;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.25em;
 }
 
 .header-link {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.6rem;
     text-decoration: none;
     color: inherit;
     transition: opacity 0.15s;
@@ -1562,8 +1574,10 @@ body {
 
 .clock {
     font-family: var(--font-mono);
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     color: var(--text-secondary);
+    white-space: nowrap;
+    padding-inline: 0.35rem;
 }
 
 .status-dot {
@@ -1641,6 +1655,593 @@ body {
     color: var(--accent-purple);
     background: rgba(139, 92, 246, 0.1);
     box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
+}
+
+/* ---- Header controls ----
+   Line icons in one weight, quiet borderless buttons and one tinted state
+   per control, so the live/paused/alert states stand out from the chrome. */
+.icon {
+    width: 18px;
+    height: 18px;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.icon .icon-fill,
+#btn-more .icon circle,
+#btn-pause.paused .icon path {
+    fill: currentColor;
+}
+
+.icon .icon-fill {
+    stroke: none;
+}
+
+.header .btn-icon {
+    position: relative;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    border-color: transparent;
+    color: var(--text-secondary);
+}
+
+.header .btn-icon:hover {
+    border-color: transparent;
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.header .btn-icon.paused {
+    border-color: rgba(245, 158, 11, 0.45);
+    color: var(--accent-yellow);
+    background: rgba(245, 158, 11, 0.12);
+}
+
+.header .btn-alert.no-alerts {
+    opacity: 1;
+    filter: none;
+}
+
+/* The badge already flags an alert; a pulsing halo on top kept pulling the
+   eye away from the charts. */
+.header .btn-alert.has-alerts {
+    border-color: transparent;
+    background: rgba(249, 115, 22, 0.12);
+    animation: none;
+}
+
+.header .alert-badge {
+    top: 2px;
+    right: 1px;
+    width: auto;
+    min-width: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    box-shadow: 0 0 0 2px var(--bg-secondary);
+}
+
+.header .lang-btn {
+    height: 2.25rem;
+    padding: 0 0.5rem;
+    border-radius: var(--radius-sm);
+}
+
+.header .lang-btn:hover {
+    opacity: 1;
+    background: var(--bg-hover);
+}
+
+.header .globe-icon {
+    width: 17px;
+    height: 17px;
+    stroke-width: 1.75;
+}
+
+/* Host and connection state in one chip. */
+.host-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+    max-width: 18rem;
+    height: 2rem;
+    padding: 0 0.7rem 0 0.6rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-hover);
+    white-space: nowrap;
+}
+
+.host-chip .hostname {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.host-chip .status-dot {
+    flex: none;
+}
+
+.host-chip .status-dot.connected {
+    animation: none;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.host-chip-state {
+    display: none;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #fca5a5;
+}
+
+.host-chip.disconnected {
+    border-color: rgba(239, 68, 68, 0.5);
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.host-chip.disconnected .host-chip-state {
+    display: inline;
+}
+
+body.light-mode .host-chip-state {
+    color: #b91c1c;
+}
+
+/* Presets as one segmented control. */
+.header .time-presets-list {
+    flex-wrap: nowrap;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--border-color);
+    border-radius: calc(var(--radius-sm) + 1px);
+    background: var(--bg-hover);
+}
+
+.header .time-presets-list .time-btn {
+    padding: 0.25rem 0.55rem;
+    border-color: transparent;
+    border-radius: 6px;
+    color: var(--text-muted);
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.header .time-presets-list .time-btn:hover {
+    border-color: transparent;
+    color: var(--text-primary);
+}
+
+.header .time-presets-list .time-btn.active {
+    border-color: rgba(59, 130, 246, 0.5);
+    background: rgba(59, 130, 246, 0.18);
+    color: var(--text-primary);
+}
+
+.header .time-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 2rem;
+}
+
+.header .btn-custom-range,
+.header .viewport-btn {
+    min-width: 2rem;
+    padding: 0 0.4rem;
+    border-color: transparent;
+    color: var(--text-secondary);
+}
+
+.header .btn-custom-range:hover,
+.header .viewport-btn:not(:disabled):hover {
+    border-color: transparent;
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.header .btn-custom-range.active {
+    border-color: rgba(59, 130, 246, 0.5);
+    background: rgba(59, 130, 246, 0.18);
+    color: var(--text-primary);
+}
+
+.header .viewport-btn.active:not(#btn-live) {
+    background: none;
+}
+
+/* Live reads as a state: green while it follows the stream, neutral as a
+   way back from history, red while the stream is gone. */
+.header #btn-live {
+    padding: 0 0.7rem;
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+    font-family: var(--font-sans);
+    font-weight: 600;
+}
+
+.live-dot {
+    width: 7px;
+    height: 7px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--text-muted);
+}
+
+.header #btn-live.active {
+    border-color: rgba(16, 185, 129, 0.45);
+    background: rgba(16, 185, 129, 0.12);
+    color: var(--text-primary);
+}
+
+.header #btn-live.active .live-dot {
+    background: var(--accent-green);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.22);
+}
+
+.dashboard:has(#host-chip.disconnected) .header #btn-live.active {
+    border-color: var(--border-color);
+    background: none;
+    color: var(--text-secondary);
+}
+
+.dashboard:has(#host-chip.disconnected) .header #btn-live.active .live-dot {
+    background: var(--accent-red);
+    box-shadow: none;
+}
+
+.header .btn-time-menu {
+    width: auto;
+    gap: 0.3rem;
+    padding: 0 0.5rem;
+    border-color: var(--border-color);
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.time-menu-label:empty {
+    display: none;
+}
+
+/* Rarer presets fold away on medium screens unless they are the one in
+   use; the menu on small screens and Ctrl K still list all of them. */
+@media (min-width: 901px) and (max-width: 1699px) {
+    .time-btn-extra:not(.active) {
+        display: none;
+    }
+}
+
+/* ---- Command search (chart filter + command menu) ---- */
+.command-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    width: 17rem;
+    height: 2.25rem;
+    margin-inline-end: 0.35rem;
+    padding: 0 0.4rem 0 0.65rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-hover);
+    color: var(--text-muted);
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.command-search:focus-within {
+    border-color: rgba(59, 130, 246, 0.6);
+}
+
+/* The field draws the ring around icon and input together. */
+.command-search:has(.chart-search-input:focus-visible) {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+#command-search .chart-search-input:focus-visible {
+    outline: none;
+}
+
+.command-search:has(> .focus-hidden) {
+    display: none;
+}
+
+.command-search .chart-search-input,
+.command-search .chart-search-input:focus {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+    outline: none;
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+}
+
+.command-search .chart-search-input::placeholder {
+    text-overflow: ellipsis;
+}
+
+.command-search-key {
+    flex: none;
+    padding: 0.05rem 0.35rem;
+    border: 1px solid var(--border-color);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    font-family: var(--font-sans);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.command-search:focus-within .command-search-key {
+    visibility: hidden;
+}
+
+.command-menu,
+.more-menu {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    inset-inline-end: 0;
+    z-index: 210;
+    padding: 0.35rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    animation: fadeInUp 0.15s ease;
+}
+
+.command-menu {
+    width: min(30rem, calc(100vw - 2rem));
+    max-height: min(26rem, 70vh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.command-group-label {
+    margin: 0.5rem 0.6rem 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.command-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.6rem;
+    border-radius: 7px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.command-item.active {
+    background: rgba(59, 130, 246, 0.16);
+}
+
+.command-item-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.command-item-hint {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.command-item.current .command-item-hint {
+    color: var(--accent-blue);
+    font-weight: 600;
+}
+
+.command-empty {
+    padding: 0.75rem 0.6rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+/* A chart picked from the command menu flashes its outline once. */
+.chart-card.command-target {
+    animation: commandTarget 1.6s ease;
+}
+
+@keyframes commandTarget {
+    0%, 60% {
+        box-shadow: 0 0 0 2px var(--accent-blue);
+    }
+
+    100% {
+        box-shadow: 0 0 0 2px transparent;
+    }
+}
+
+/* ---- More menu ---- */
+.header-more {
+    position: relative;
+    display: flex;
+}
+
+.more-menu {
+    display: flex;
+    flex-direction: column;
+    min-width: 15rem;
+}
+
+.more-item {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.65rem;
+    width: 100%;
+    padding: 0.55rem 0.65rem;
+    border: 0;
+    border-radius: 7px;
+    background: none;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 0.85rem;
+    text-align: start;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.more-item:hover,
+.more-item:focus-visible {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    box-shadow: none;
+}
+
+.more-item .icon {
+    color: var(--text-secondary);
+}
+
+/* Toggles that are on carry a dot at the end of the row. */
+.more-item.focus-active,
+.more-item.layout-active,
+.more-item.system-info-current {
+    border: 0;
+    background: none;
+    box-shadow: none;
+    color: var(--text-primary);
+}
+
+.more-item.focus-active::after,
+.more-item.layout-active::after,
+.more-item.system-info-current::after {
+    content: '';
+    width: 7px;
+    height: 7px;
+    margin-inline-start: auto;
+    border-radius: 50%;
+    background: var(--accent-blue);
+}
+
+/* ---- Header on narrower screens ----
+   Below 1180px the time controls take a second row under brand and actions. */
+@media (max-width: 1599px) {
+    html:not(.tv-mode) .header .clock {
+        display: none;
+    }
+}
+
+@media (max-width: 1179px) {
+    .header {
+        flex-wrap: wrap;
+    }
+
+    .header .time-controls {
+        order: 3;
+        flex-basis: 100%;
+    }
+}
+
+@media (max-width: 900px) {
+    .header .time-presets-list {
+        flex-wrap: nowrap;
+        gap: 2px;
+        padding: 0.35rem;
+        border-radius: var(--radius);
+        background: var(--bg-secondary);
+    }
+
+    .header .time-presets-list .time-btn {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 700px) {
+    .header {
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+    }
+
+    .header h1 {
+        display: none;
+    }
+
+    .host-chip {
+        max-width: 9.5rem;
+    }
+
+    .header .time-controls {
+        gap: 0.5rem;
+    }
+
+    /* Pausing stays in the command menu; the button shows while paused. */
+    .header #btn-pause:not(.paused) {
+        display: none;
+    }
+
+    /* The search folds to its icon and covers the first row while in use. */
+    .command-search {
+        width: 2.25rem;
+        margin: 0;
+        padding: 0;
+        justify-content: center;
+        border-color: transparent;
+        background: none;
+        color: var(--text-secondary);
+    }
+
+    .command-search .chart-search-input {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    .command-search-key {
+        display: none;
+    }
+
+    .command-search:focus-within {
+        position: absolute;
+        top: 0.5rem;
+        inset-inline: 0.75rem;
+        z-index: 220;
+        width: auto;
+        padding: 0 0.65rem;
+        justify-content: flex-start;
+        background: var(--bg-secondary);
+    }
+
+    .command-search:focus-within .chart-search-input {
+        position: static;
+        opacity: 1;
+        cursor: text;
+    }
+
+    .command-menu {
+        inset-inline: -1px;
+        width: auto;
+    }
 }
 
 /* ---- Alert System ---- */
@@ -1876,21 +2477,19 @@ body {
     background: inherit;
 }
 
-/* ---- Time Controls ---- */
+/* ---- Time Controls ----
+   They sit inside the header row; the header carries the surface. */
 .time-controls {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 0.5rem 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    background: var(--bg-card);
-    backdrop-filter: blur(10px);
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 0.75rem;
 }
 
 .time-presets {
     display: flex;
+    flex: none;
     gap: 0.25rem;
     align-items: center;
     position: relative;
@@ -1910,9 +2509,10 @@ body {
 }
 
 .time-divider {
-    color: var(--border-color);
-    font-size: 0.8rem;
-    margin: 0 0.15rem;
+    width: 1px;
+    height: 1.25rem;
+    margin: 0 0.3rem;
+    background: var(--border-color);
 }
 
 .viewport-actions {
@@ -2578,6 +3178,21 @@ body.light-mode .range-calendar-month {
     font-size: 0.8rem;
     color: var(--text-muted);
     font-family: var(--font-mono);
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* "Last 5 minutes" repeats the highlighted preset; the text only earns its
+   room for a custom or zoomed window. It stays in the accessibility tree. */
+.time-controls:has(.time-btn[data-range].active) #time-range-display {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
 }
 
 .pinned-time {
@@ -2879,9 +3494,62 @@ html:not(.tv-mode) .chart-header::before {
 }
 
 .chart-subtitle {
-    font-size: 0.75rem;
-    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-family: var(--font-sans);
+    font-variant-numeric: tabular-nums;
     color: var(--text-muted);
+}
+
+/* The current value leads the subtitle; the rest is context in muted ink. */
+.subtitle-lead {
+    margin-inline-end: 0.35rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Card actions recede until the card is in use. */
+.chart-header .btn-icon {
+    width: 1.75rem;
+    padding: 0;
+    border-color: transparent;
+    color: var(--text-muted);
+}
+
+.chart-header .btn-icon .icon {
+    width: 16px;
+    height: 16px;
+}
+
+.chart-header .btn-icon:hover,
+.chart-header .btn-icon:focus-visible {
+    border-color: transparent;
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    opacity: 1;
+}
+
+/* ---- Headline charts ----
+   CPU, load, memory and network take half a row each on wide screens; the
+   other system charts follow three to a row. */
+@media (min-width: 1400px) {
+    html:not(.tv-mode) .dashboard:not(.layout-list) #charts-grid:not(.focus-active) {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+
+    html:not(.tv-mode) .dashboard:not(.layout-list) #charts-grid:not(.focus-active) > .chart-card:not(.chart-expanded) {
+        grid-column: span 2;
+    }
+
+    html:not(.tv-mode) .dashboard:not(.layout-list) #charts-grid:not(.focus-active) > .chart-card.chart-card-main:not(.chart-expanded) {
+        grid-column: span 3;
+    }
+}
+
+@media (min-width: 1001px) {
+    html:not(.tv-mode) .dashboard:not(.layout-list) #charts-grid:not(.focus-active) > .chart-card-main:not(.chart-expanded) .chart-body {
+        height: 260px;
+    }
 }
 
 .chart-header-right {
@@ -3258,13 +3926,13 @@ html.tv-mode #dashboard-home:not(.hidden) {
     flex-direction: column;
 }
 
-/* Only the connection state, the clock and a paused indicator stay in the header. */
+/* Only the host and connection state, the clock and a paused indicator stay in the header. */
 html.tv-mode .header {
     padding-top: 0.5rem;
     padding-bottom: 0.5rem;
 }
 
-html.tv-mode .header-right > :not(#connection-status):not(#clock):not(#btn-pause),
+html.tv-mode .header-right > :not(#clock):not(#btn-pause),
 html.tv-mode #btn-pause:not(.paused),
 html.tv-mode .time-controls,
 html.tv-mode .time-custom-section,
@@ -3509,15 +4177,6 @@ html.tv-mode.tv-idle * {
 }
 
 @media (max-width: 980px) {
-    .header {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .header-right {
-        justify-content: center;
-    }
-
     .sys-footer {
         flex-direction: column;
         text-align: center;
@@ -3541,7 +4200,9 @@ html.tv-mode.tv-idle * {
         position: absolute;
         top: 100%;
         left: 0;
-        background: var(--bg-card);
+        /* Opaque: the translucent card colour let the gauges and range label
+           behind the menu show through its options. */
+        background: var(--bg-secondary);
         border: 1px solid var(--border-color);
         border-radius: var(--radius);
         padding: 0.5rem;
@@ -3735,7 +4396,6 @@ html.tv-mode.tv-idle * {
 
 @media (max-width: 640px) {
     .header-lang {
-        order: 10;
         margin: 0;
     }
 }
@@ -3930,12 +4590,6 @@ html.tv-mode.tv-idle * {
     right: auto;
     left: 0;
     text-align: right;
-}
-
-@media (max-width: 640px) {
-    .header-settings {
-        order: 9;
-    }
 }
 
 /* ---- AI Assistant Panel ---- */
@@ -4562,6 +5216,30 @@ html.a11y-reduce-motion *::after {
 html.a11y-underline-links a:not(.btn-icon) {
     text-decoration: underline;
     text-underline-offset: 0.15em;
+}
+
+/* ---- Keyboard focus ----
+   Every control shows a ring while it has keyboard focus (WCAG 2.4.7).
+   Several inputs and selects drop `outline` for mouse use; :focus-visible
+   plus the attribute selectors outrank those rules without touching mouse
+   focus. "Strong focus outline" below thickens the ring further. */
+:is(a[href], button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+/* ---- Right-to-left locales ----
+   Values such as "60 Kbps" or "586.7 MB / 15.7 GB" are left-to-right runs.
+   In an RTL page the bidi algorithm would otherwise move the unit before
+   the number, so value containers and chart canvases (which inherit the
+   page direction for their axis and tooltip text) stay LTR and isolated. */
+[dir="rtl"] :is(.gauge-value, .chart-subtitle, .sampling-info, .clock, .hostname, .sys-info-item, .time-info) {
+    direction: ltr;
+    unicode-bidi: isolate;
+}
+
+[dir="rtl"] .chart-body canvas {
+    direction: ltr;
 }
 
 /* ---- Accessibility: strong focus outline ---- */

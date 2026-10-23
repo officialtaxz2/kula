@@ -3,11 +3,12 @@
    dashboard chart initialization.
    ============================================================ */
 'use strict';
-import { state, colors, getChartMaxBound } from './state.js';
+import { state, colors, getChartMaxBound, seriesColor } from './state.js';
 import {
     formatBytesShort,
     formatChartTick,
     formatFullTimestamp,
+    formatMbps,
     formatMetricNumber,
     formatPPS,
     historyTooltipLines,
@@ -30,6 +31,22 @@ import { minimumZoomSpan } from './history-navigation.js';
 Chart.register(envelopePlugin, chartAccessibilityPlugin, crosshairPlugin, tooltipGesturePlugin);
 
 // ---- Chart Initialization ----
+// Replaces Chart.js's decimal ticks on a byte axis with steps of 1, 2, 4 or
+// 5 times a power of 1024 (or 128/256/512 of the unit below), about five per axis.
+function binaryByteTicks(axis) {
+    const span = axis.max - axis.min;
+    if (!(span >= 8)) return;
+    const unit = 1024 ** Math.floor(Math.log(span) / Math.log(1024));
+    const raw = span / unit / 5;
+    const nice = [0.125, 0.25, 0.5, 1, 2, 4, 5, 10, 20, 25, 50, 100, 128, 256, 512].find(n => n >= raw) || 1024;
+    const step = nice * unit;
+    const ticks = [];
+    for (let value = Math.ceil(axis.min / step) * step; value <= axis.max + step * 1e-6; value += step) {
+        ticks.push({ value });
+    }
+    if (ticks.length >= 2) axis.ticks = ticks;
+}
+
 export function createTimeSeriesChart(canvasId, datasets, yConfig = {}, extraPlugins = {}) {
     const ctx = document.getElementById(canvasId);
     if (!ctx) return null;
@@ -266,14 +283,34 @@ export function destroyAppCharts() {
 export function initCharts() {
     destroyAllCharts();
 
-    // CPU
+    // Series take their colour from a role (see seriesPalette in state.js) so
+    // the same hue keeps the same meaning across charts. Each chart shows at
+    // most three series by default; the rest start hidden behind the legend.
+    const series = (labelKey, role, extra = {}) => ({
+        label: i18n.t(labelKey), kulaRole: role, borderColor: seriesColor(role), data: [], fill: false, ...extra,
+    });
+    const hidden = { hidden: true };
+    const dashed = { borderDash: [4, 2] };
+    const unit = (format) => ({ tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + format(ctx.parsed.y) } } });
+    const percent = v => formatMetricNumber(v) + '%';
+    const whole = v => formatMetricNumber(Math.round(v));
+    // Integer steps keep near-zero ranges from repeating "0 B, 0 B, 0 B".
+    const countTicks = { precision: 0 };
+    // Byte axes step in binary units (4 GB, 512 MB …) to match the binary
+    // labels; decimal steps printed "1.9 GB, 3.7 GB, 5.6 GB".
+    const byteAxis = (suffix = '') => ({
+        afterBuildTicks: binaryByteTicks,
+        ticks: { ...countTicks, callback: v => formatBytesShort(v).replace('.0 ', ' ') + suffix },
+    });
+
+    // CPU — total plus the two parts that explain a busy CPU
     state.charts.cpu = createTimeSeriesChart('chart-cpu', [
-        { label: i18n.t('user'), borderColor: colors.blue, backgroundColor: colors.blueAlpha, fill: true, data: [] },
-        { label: i18n.t('system'), borderColor: colors.red, backgroundColor: colors.redAlpha, fill: true, data: [] },
-        { label: i18n.t('iowait'), borderColor: colors.yellow, backgroundColor: colors.yellowAlpha, fill: true, data: [] },
-        { label: i18n.t('steal'), borderColor: colors.purple, backgroundColor: colors.purpleAlpha, fill: true, data: [] },
-        { label: i18n.t('total'), borderColor: colors.cyan, data: [], fill: false, borderWidth: 2 },
-    ], { max: 100, ticks: { callback: v => formatMetricNumber(v) + '%' } });
+        series('user', 'c4', hidden),
+        series('system', 'c2'),
+        series('iowait', 'c3'),
+        series('steal', 'c5', hidden),
+        series('total', 'c1', { borderWidth: 2 }),
+    ], { max: 100, ticks: { callback: percent } }, unit(percent));
 
     state.cpuTempSensorNames = [];
     let cpuTempYConfig = { ticks: { callback: v => v.toFixed(1) + '°C' } };
@@ -281,69 +318,67 @@ export function initCharts() {
     if (cpuTempMax !== undefined) cpuTempYConfig.max = cpuTempMax;
 
     state.charts.cputemp = createTimeSeriesChart('chart-cpu-temp', [
-        { label: i18n.t('temperature'), borderColor: colors.orange, backgroundColor: colors.orangeAlpha, fill: true, data: [] },
-    ], cpuTempYConfig);
+        series('temperature', 'c2'),
+    ], cpuTempYConfig, unit(v => v.toFixed(1) + '°C'));
 
-    // Load Average
+    // Load Average — the 1-minute value leads, the slower averages give context
     state.charts.loadavg = createTimeSeriesChart('chart-loadavg', [
-        { label: i18n.t('1_min'), borderColor: colors.red, data: [], fill: false, borderWidth: 2 },
-        { label: i18n.t('5_min'), borderColor: colors.yellow, data: [], fill: false },
-        { label: i18n.t('15_min'), borderColor: colors.green, data: [], fill: false },
+        series('1_min', 'c1', { borderWidth: 2 }),
+        series('5_min', 'muted'),
+        series('15_min', 'muted', dashed),
     ]);
 
     // Memory — with Free, Available, and Shmem datasets, max set dynamically
     state.charts.memory = createTimeSeriesChart('chart-memory', [
-        { label: i18n.t('used'), borderColor: colors.blue, backgroundColor: colors.blueAlpha, fill: true, data: [] },
-        { label: i18n.t('buffers'), borderColor: colors.cyan, backgroundColor: colors.cyanAlpha, fill: true, data: [] },
-        { label: i18n.t('cached'), borderColor: colors.green, backgroundColor: colors.greenAlpha, fill: true, data: [] },
-        { label: i18n.t('shmem'), borderColor: colors.purple, backgroundColor: colors.purpleAlpha, fill: true, data: [] },
-        { label: i18n.t('free'), borderColor: colors.teal, data: [], fill: false, borderDash: [4, 2] },
-        { label: i18n.t('available'), borderColor: colors.lime, data: [], fill: false, borderDash: [4, 2] },
-    ], { ticks: { callback: v => formatBytesShort(v) } }, {
-        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + formatBytesShort(ctx.parsed.y) } }
-    });
+        series('used', 'c1'),
+        series('buffers', 'c4', hidden),
+        series('cached', 'c3'),
+        series('shmem', 'c5', hidden),
+        series('free', 'muted', { ...dashed, ...hidden }),
+        series('available', 'muted', dashed),
+    ], byteAxis(), unit(formatBytesShort));
 
     // Swap — with Free dataset, max set dynamically
     state.charts.swap = createTimeSeriesChart('chart-swap', [
-        { label: i18n.t('used'), borderColor: colors.orange, backgroundColor: colors.orangeAlpha, fill: true, data: [] },
-        { label: i18n.t('free'), borderColor: colors.teal, data: [], fill: false, borderDash: [4, 2] },
-    ], { min: 0, ticks: { callback: v => formatBytesShort(v) } }, {
-        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + formatBytesShort(ctx.parsed.y) } }
-    });
+        series('used', 'c1'),
+        series('free', 'muted', { ...dashed, ...hidden }),
+    ], { min: 0, ...byteAxis() }, unit(formatBytesShort));
 
-    let networkYConfig = { ticks: { callback: v => v.toFixed(1) + ' Mbps' } };
+    // A floor of 10 Kbps keeps an idle link from labelling every tick "0 Kbps".
+    let networkYConfig = { suggestedMax: 0.01, ticks: { callback: v => v >= 1 && Number.isInteger(v) ? `${v} Mbps` : formatMbps(v) } };
     let networkMax = getChartMaxBound('network');
     if (networkMax !== undefined) networkYConfig.max = networkMax;
 
     state.charts.network = createTimeSeriesChart('chart-network', [
-        { label: i18n.t('rx'), borderColor: colors.cyan, backgroundColor: colors.cyanAlpha, fill: true, data: [] },
-        { label: i18n.t('tx'), borderColor: colors.pink, backgroundColor: colors.pinkAlpha, fill: true, data: [] },
-    ], networkYConfig);
+        series('rx', 'c1'),
+        series('tx', 'c2'),
+    ], networkYConfig, unit(formatMbps));
 
     state.charts.pps = createTimeSeriesChart('chart-pps', [
-        { label: i18n.t('rx_pps'), borderColor: colors.green, backgroundColor: colors.greenAlpha, fill: true, data: [] },
-        { label: i18n.t('tx_pps'), borderColor: colors.orange, backgroundColor: colors.orangeAlpha, fill: true, data: [] },
-    ], { ticks: { callback: v => formatPPS(v) } }, {
-        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + formatPPS(Math.round(ctx.parsed.y)) } }
-    });
+        series('rx_pps', 'c1'),
+        series('tx_pps', 'c2'),
+    ], { ticks: { ...countTicks, callback: v => formatPPS(v) } }, unit(v => formatPPS(Math.round(v))));
 
-    // Connections
+    // Connections — open and closing sockets; protocol totals and error rates
+    // (also in the subtitle) are a legend click away.
     state.charts.connections = createTimeSeriesChart('chart-connections', [
-        { label: i18n.t('tcp'), borderColor: colors.blue, data: [], fill: false },
-        { label: i18n.t('udp'), borderColor: colors.green, data: [], fill: false },
-        { label: i18n.t('time_wait'), borderColor: colors.yellow, data: [], fill: false },
-        { label: i18n.t('established'), borderColor: colors.cyan, data: [], fill: false },
-        { label: i18n.t('inerrs'), borderColor: colors.red, data: [], fill: false, borderDash: [4, 2] },
-        { label: i18n.t('outrsts'), borderColor: colors.orange, data: [], fill: false, borderDash: [4, 2] },
-        { label: i18n.t('retrans'), borderColor: colors.pink, data: [], fill: false, borderDash: [4, 2] },
-    ]);
+        series('tcp', 'c4', hidden),
+        series('udp', 'c3', hidden),
+        series('time_wait', 'c2'),
+        series('established', 'c1'),
+        series('inerrs', 'c7', { ...dashed, ...hidden }),
+        series('outrsts', 'c6', { ...dashed, ...hidden }),
+        series('retrans', 'c5', { ...dashed, ...hidden }),
+    ], { ticks: countTicks }, unit(whole));
 
+    // Disk I/O — throughput by default; the operation rates bring their own
+    // axis only while one of them is shown.
     state.charts.diskio = createTimeSeriesChart('chart-disk-io', [
-        { label: i18n.t('read_bs'), borderColor: colors.green, backgroundColor: colors.greenAlpha, fill: true, data: [], yAxisID: 'y' },
-        { label: i18n.t('write_bs'), borderColor: colors.orange, backgroundColor: colors.orangeAlpha, fill: true, data: [], yAxisID: 'y' },
-        { label: i18n.t('reads_s'), borderColor: colors.cyan, data: [], fill: false, borderDash: [4, 2], yAxisID: 'y1' },
-        { label: i18n.t('writes_s'), borderColor: colors.pink, data: [], fill: false, borderDash: [4, 2], yAxisID: 'y1' },
-    ], { ticks: { callback: v => formatBytesShort(v) + '/s' } }, {
+        series('read_bs', 'c1', { yAxisID: 'y' }),
+        series('write_bs', 'c2', { yAxisID: 'y' }),
+        series('reads_s', 'c1', { ...dashed, ...hidden, yAxisID: 'y1' }),
+        series('writes_s', 'c2', { ...dashed, ...hidden, yAxisID: 'y1' }),
+    ], byteAxis('/s'), {
         tooltip: {
             callbacks: {
                 label: ctx => ctx.dataset.yAxisID === 'y1'
@@ -356,10 +391,11 @@ export function initCharts() {
     // Reconfigure disk IO chart for dual axes
     if (state.charts.diskio) {
         state.charts.diskio.options.scales.y1 = {
+            display: 'auto',
             position: 'right',
             beginAtZero: true,
             grid: { display: false },
-            ticks: { callback: v => v.toFixed(0) + ' IO/s' },
+            ticks: { ...countTicks, callback: v => v.toFixed(0) + ' IO/s' },
         };
         queueChartUpdate(state.charts.diskio);
     }
@@ -370,8 +406,8 @@ export function initCharts() {
     if (diskTempMax !== undefined) diskTempYConfig.max = diskTempMax;
 
     state.charts.disktemp = createTimeSeriesChart('chart-disk-temp', [
-        { label: i18n.t('temperature'), borderColor: colors.red, backgroundColor: colors.redAlpha, fill: true, data: [] },
-    ], diskTempYConfig);
+        series('temperature', 'c2'),
+    ], diskTempYConfig, unit(v => v.toFixed(1) + '°C'));
 
     // Disk Space — datasets are added dynamically per mount on first sample
     state.diskSpaceMountNames = [];
@@ -390,27 +426,36 @@ export function initCharts() {
         }
     });
 
-    // Processes
+    // Processes — how many run or wait, against the total
     state.charts.processes = createTimeSeriesChart('chart-processes', [
-        { label: i18n.t('running'), borderColor: colors.green, data: [], fill: false },
-        { label: i18n.t('sleeping'), borderColor: colors.blue, data: [], fill: false },
-        { label: i18n.t('blocked'), borderColor: colors.red, data: [], fill: false },
-        { label: i18n.t('zombie'), borderColor: colors.yellow, data: [], fill: false },
-        { label: i18n.t('total'), borderColor: colors.cyan, data: [], fill: false, borderDash: [4, 2] },
-    ]);
+        series('running', 'c1'),
+        series('sleeping', 'c4', hidden),
+        series('blocked', 'c2'),
+        series('zombie', 'c7', hidden),
+        series('total', 'muted', dashed),
+    ], { ticks: countTicks }, unit(whole));
 
     // Entropy
     state.charts.entropy = createTimeSeriesChart('chart-entropy', [
-        { label: i18n.t('entropy'), borderColor: colors.green, backgroundColor: colors.greenAlpha, fill: true, data: [] },
-    ]);
+        series('entropy', 'c1'),
+    ], { ticks: countTicks }, unit(whole));
 
     // GPU Load
     state.charts.gpuload = createTimeSeriesChart('chart-gpu-load', [
-        { label: i18n.t('load_pct'), borderColor: colors.green, backgroundColor: colors.greenAlpha, fill: true, data: [] },
-        { label: i18n.t('power_w'), borderColor: colors.orange, data: [], fill: false, yAxisID: 'y1' },
-    ], { max: 100, ticks: { callback: v => formatMetricNumber(v) + '%' } });
+        series('load_pct', 'c1'),
+        series('power_w', 'c2', { ...hidden, yAxisID: 'y1' }),
+    ], { max: 100, ticks: { callback: percent } }, {
+        tooltip: {
+            callbacks: {
+                label: ctx => ctx.dataset.label + ': ' + (ctx.dataset.yAxisID === 'y1'
+                    ? ctx.parsed.y.toFixed(1) + ' W'
+                    : percent(ctx.parsed.y)),
+            },
+        },
+    });
     if (state.charts.gpuload) {
         state.charts.gpuload.options.scales.y1 = {
+            display: 'auto',
             position: 'right',
             beginAtZero: true,
             grid: { display: false },
@@ -421,38 +466,37 @@ export function initCharts() {
 
     // VRAM
     state.charts.vram = createTimeSeriesChart('chart-vram', [
-        { label: i18n.t('used'), borderColor: colors.purple, backgroundColor: colors.purpleAlpha, fill: true, data: [] },
-    ], { ticks: { callback: v => formatBytesShort(v) } }, {
-        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + formatBytesShort(ctx.parsed.y) } }
-    });
+        series('used', 'c1'),
+    ], byteAxis(), unit(formatBytesShort));
 
     // GPU Temperature
     let gpuTempMax = getChartMaxBound('gpu_temp');
     let gpuTempYConfig = { max: gpuTempMax, ticks: { callback: v => v.toFixed(1) + '°C' } };
     state.charts.gputemp = createTimeSeriesChart('chart-gpu-temp', [
-        { label: i18n.t('temperature'), borderColor: colors.red, backgroundColor: colors.redAlpha, fill: true, data: [] },
-    ], gpuTempYConfig);
+        series('temperature', 'c2'),
+    ], gpuTempYConfig, unit(v => v.toFixed(1) + '°C'));
 
-    // Self monitoring
+    // Self monitoring — Kula's own CPU share; memory has its own axis when shown
     state.charts.self = createTimeSeriesChart('chart-self', [
-        { label: i18n.t('cpu_pct'), borderColor: colors.cyan, data: [], fill: false, yAxisID: 'y' },
-        { label: i18n.t('rss'), borderColor: colors.purple, data: [], fill: false, yAxisID: 'y1' },
-    ], {}, {
+        series('cpu_pct', 'c1', { yAxisID: 'y' }),
+        series('rss', 'c4', { ...hidden, yAxisID: 'y1' }),
+    ], { ticks: { callback: percent } }, {
         tooltip: {
             callbacks: {
                 label: ctx => ctx.dataset.yAxisID === 'y1'
                     ? ctx.dataset.label + ': ' + formatBytesShort(ctx.parsed.y)
-                    : ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(1)
+                    : ctx.dataset.label + ': ' + percent(ctx.parsed.y)
             }
         }
     });
     // Reconfigure self chart for dual axes
     if (state.charts.self) {
         state.charts.self.options.scales.y1 = {
+            display: 'auto',
             position: 'right',
             beginAtZero: true,
             grid: { display: false },
-            ticks: { callback: v => formatBytesShort(v) },
+            ticks: { ...countTicks, callback: v => formatBytesShort(v) },
         };
         queueChartUpdate(state.charts.self);
     }

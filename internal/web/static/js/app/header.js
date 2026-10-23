@@ -7,6 +7,13 @@ import { diskMember } from './disk-identity.js';
 import { formatBytesShort, formatClockTimestamp, formatMbps, formatPPS } from './format.js';
 import { i18n } from './i18n.js';
 
+// The compact time menu button shows the active preset ("5m"), or nothing
+// beside its clock icon while a custom or zoomed window is on screen.
+export function syncTimeMenuLabel() {
+    const label = document.getElementById('time-menu-label');
+    if (label) label.textContent = document.querySelector('.time-btn[data-range].active')?.textContent.trim() || '';
+}
+
 export function updateHeader(s) {
     const el = (id) => document.getElementById(id);
     el('clock').textContent = formatClockTimestamp(s.ts, state.timeZone, i18n.currentLang);
@@ -32,20 +39,37 @@ export function updateHeader(s) {
 
 export function updateSubtitles(s) {
     const el = (id, text) => { const e = document.getElementById(id); if (e) e.textContent = text; };
+    // The headline value of a card leads its subtitle in a stronger weight;
+    // the breakdown after it stays secondary.
+    const lead = (id, value, detail = '') => {
+        const e = document.getElementById(id);
+        if (!e) return;
+        let strong = e.firstElementChild;
+        if (!strong || !strong.classList.contains('subtitle-lead')) {
+            e.textContent = '';
+            strong = document.createElement('span');
+            strong.className = 'subtitle-lead';
+            e.append(strong, document.createTextNode(''));
+        }
+        strong.textContent = value;
+        e.lastChild.textContent = detail ? ' ' + detail : '';
+    };
 
     if (s.cpu?.total) {
-        el('cpu-subtitle', `usr:${(s.cpu.total.user || 0).toFixed(1)}% sys:${(s.cpu.total.system || 0).toFixed(1)}% io:${(s.cpu.total.iowait || 0).toFixed(1)}% ${s.cpu.num_cores || 0} ${i18n.t('cores')}`);
+        lead('cpu-subtitle', `${(s.cpu.total.usage || 0).toFixed(1)}%`,
+            `usr:${(s.cpu.total.user || 0).toFixed(1)}% sys:${(s.cpu.total.system || 0).toFixed(1)}% io:${(s.cpu.total.iowait || 0).toFixed(1)}% · ${s.cpu.num_cores || 0} ${i18n.t('cores')}`);
     }
-    if (s.lavg) el('lavg-subtitle', `${(s.lavg.load1 || 0).toFixed(2)} / ${(s.lavg.load5 || 0).toFixed(2)} / ${(s.lavg.load15 || 0).toFixed(2)}`);
+    if (s.lavg) lead('lavg-subtitle', (s.lavg.load1 || 0).toFixed(2), `/ ${(s.lavg.load5 || 0).toFixed(2)} / ${(s.lavg.load15 || 0).toFixed(2)}`);
     // Memory — with % appended
     if (s.mem) {
         const memPct = s.mem.used_pct !== undefined ? s.mem.used_pct.toFixed(1) : '0.0';
-        el('mem-subtitle', `${formatBytesShort(s.mem.used)} / ${formatBytesShort(s.mem.total)} (${memPct}%)`);
+        lead('mem-subtitle', formatBytesShort(s.mem.used), `/ ${formatBytesShort(s.mem.total)} (${memPct}%)`);
     }
     // Swap — with % appended
     if (s.swap) {
         const swapPct = s.swap.used_pct !== undefined ? s.swap.used_pct.toFixed(1) : '0.0';
-        el('swap-subtitle', `${formatBytesShort(s.swap.used || 0)} / ${formatBytesShort(s.swap.total || 0)} (${swapPct}%)`);
+        if (s.swap.total > 0) lead('swap-subtitle', formatBytesShort(s.swap.used || 0), `/ ${formatBytesShort(s.swap.total)} (${swapPct}%)`);
+        else el('swap-subtitle', i18n.t('no_swap'));
     }
     if (s.net?.ifaces) {
         let rx = 0, tx = 0, rxPps = 0, txPps = 0;
@@ -61,13 +85,13 @@ export function updateSubtitles(s) {
                 }
             });
         }
-        el('net-subtitle', `↓${formatMbps(rx)} ↑${formatMbps(tx)}`);
-        el('pps-subtitle', `↓${formatPPS(rxPps)} ↑${formatPPS(txPps)}`);
+        lead('net-subtitle', `↓${formatMbps(rx)}`, `↑${formatMbps(tx)}`);
+        lead('pps-subtitle', `↓${formatPPS(rxPps)}`, `↑${formatPPS(txPps)}`);
     }
     if (s.net?.sockets) {
         const errs = (s.net?.tcp?.in_errs_ps || 0).toFixed(2);
         const rsts = (s.net?.tcp?.out_rsts_ps || 0).toFixed(2);
-        el('conn-subtitle', `estab:${s.net?.tcp?.curr_estab || 0} err:${errs}/s rst:${rsts}/s`);
+        lead('conn-subtitle', `${s.net?.tcp?.curr_estab || 0}`, `estab · err:${errs}/s rst:${rsts}/s`);
     }
     if (s.disk?.devices) {
         let r = 0, w = 0, rIops = 0, wIops = 0;
@@ -75,13 +99,13 @@ export function updateSubtitles(s) {
         if (d) {
             r = d.read_bps || 0; w = d.write_bps || 0;
             rIops = d.reads_ps || 0; wIops = d.writes_ps || 0;
-            el('diskio-subtitle', `R:${formatBytesShort(r)}/s W:${formatBytesShort(w)}/s  rIOPS:${rIops.toFixed(0)} wIOPS:${wIops.toFixed(0)}`);
+            lead('diskio-subtitle', `R:${formatBytesShort(r)}/s W:${formatBytesShort(w)}/s`, `rIOPS:${rIops.toFixed(0)} wIOPS:${wIops.toFixed(0)}`);
         } else if (!state.selectedDiskIo) {
             s.disk.devices.forEach(d => {
                 r += d.read_bps || 0; w += d.write_bps || 0;
                 rIops += d.reads_ps || 0; wIops += d.writes_ps || 0;
             });
-            el('diskio-subtitle', `R:${formatBytesShort(r)}/s W:${formatBytesShort(w)}/s  rIOPS:${rIops.toFixed(0)} wIOPS:${wIops.toFixed(0)}`);
+            lead('diskio-subtitle', `R:${formatBytesShort(r)}/s W:${formatBytesShort(w)}/s`, `rIOPS:${rIops.toFixed(0)} wIOPS:${wIops.toFixed(0)}`);
         }
 
         if (state.selectedDiskIo && !d) el('diskio-subtitle', '');
@@ -112,11 +136,11 @@ export function updateSubtitles(s) {
         }
         if (total > 0) {
             const pct = (used / total) * 100;
-            el('diskspace-subtitle', `${formatBytesShort(used)} / ${formatBytesShort(total)} (${pct.toFixed(1)}%)`);
+            lead('diskspace-subtitle', `${pct.toFixed(1)}%`, `${formatBytesShort(used)} / ${formatBytesShort(total)}`);
         }
     }
-    if (s.proc) el('proc-subtitle', `${s.proc.total || 0} total, ${s.proc.running || 0} running`);
-    if (s.self) el('self-subtitle', `${(s.self.cpu_pct || 0).toFixed(1)}% cpu, ${formatBytesShort(s.self.mem_rss || 0)} rss, ${s.self.fds || 0} fds`);
+    if (s.proc) lead('proc-subtitle', `${s.proc.total || 0}`, `total, ${s.proc.running || 0} running`);
+    if (s.self) lead('self-subtitle', `${(s.self.cpu_pct || 0).toFixed(1)}%`, `cpu, ${formatBytesShort(s.self.mem_rss || 0)} rss, ${s.self.fds || 0} fds`);
 
     if (s.gpu && s.gpu.length > 0) {
         const g = s.gpu.find(g => g.name === state.selectedGpuLoad) || s.gpu[0];

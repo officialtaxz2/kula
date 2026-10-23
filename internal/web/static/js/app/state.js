@@ -129,6 +129,29 @@ export const colors = {
     pinkAlpha: 'rgba(236, 72, 153, 0.15)',
 };
 
+// ---- Series roles ----
+// The core charts colour each series by its job rather than by a per-chart
+// pick, so blue always means the primary or incoming value and orange the
+// secondary or outgoing one. Each theme has its own validated steps
+// (OKLab ΔE ≥ 9 between neighbours under colour-vision deficiency, ≥ 3:1
+// against the card surface); applyTheme() swaps them on a theme change.
+export const seriesPalette = {
+    dark: {
+        c1: '#3987e5', c2: '#d95926', c3: '#199e70', c4: '#9085e9',
+        c5: '#d55181', c6: '#c98500', c7: '#e66767',
+        muted: '#8b96a5', strong: '#cbd5e1',
+    },
+    light: {
+        c1: '#2a78d6', c2: '#e2622e', c3: '#16956a', c4: '#6250d6',
+        c5: '#c94477', c6: '#b07400', c7: '#d63c3b',
+        muted: '#64748b', strong: '#334155',
+    },
+};
+
+export function seriesColor(role, theme = document.body?.classList.contains('light-mode') ? 'light' : 'dark') {
+    return seriesPalette[theme]?.[role] || seriesPalette.dark[role];
+}
+
 // ---- Chart.js Global Config ----
 Chart.defaults.color = '#94a3b8';
 Chart.defaults.borderColor = 'rgba(55, 65, 81, 0.3)';
@@ -171,6 +194,30 @@ Chart.Tooltip.positioners.awayFromCursor = function (elements, eventPosition) {
 };
 
 // ---- Shared Helpers ----
+// Line icons for buttons the scripts create, drawn like the header's inline
+// SVGs (style.css .icon) so chart cards match the top bar.
+const LINE_ICONS = {
+    expand: [['path', { d: 'M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5' }]],
+    image: [['path', { d: 'M4 8h3l2-2.5h6L17 8h3v11H4z' }], ['circle', { cx: 12, cy: 13, r: 3.5 }]],
+    bounds: [['path', { d: 'M4 7h10M18 7h2M4 17h4M12 17h8' }], ['circle', { cx: 16, cy: 7, r: 2 }], ['circle', { cx: 10, cy: 17, r: 2 }]],
+    split: [['rect', { x: 4, y: 4, width: 16, height: 6.5, rx: 1.5 }], ['rect', { x: 4, y: 13.5, width: 16, height: 6.5, rx: 1.5 }]],
+    join: [['rect', { x: 4, y: 4, width: 16, height: 16, rx: 1.5 }]],
+};
+
+export function lineIcon(name) {
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('class', 'icon');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('aria-hidden', 'true');
+    for (const [tag, attrs] of LINE_ICONS[name] || []) {
+        const part = document.createElementNS(ns, tag);
+        for (const [key, value] of Object.entries(attrs)) part.setAttribute(key, value);
+        svg.append(part);
+    }
+    return svg;
+}
+
 export const escapeHTML = (str) => String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 
 // Stored Y-axis bounds per chart: { [graphId]: { mode, value, auto } }.

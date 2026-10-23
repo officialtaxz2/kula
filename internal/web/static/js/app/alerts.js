@@ -3,6 +3,7 @@
    ============================================================ */
 'use strict';
 import { state, escapeHTML } from './state.js';
+import { i18n } from './i18n.js';
 
 export function evaluateAlerts(sample) {
     const alerts = [];
@@ -81,10 +82,13 @@ function updateAlertUI() {
         btn.classList.remove('has-alerts');
         btn.classList.add('no-alerts');
     }
+    // The badge is hidden from assistive tech; the button name carries the count.
+    const name = state.alerts.length > 0 ? `${i18n.t('alerts')} (${state.alerts.length})` : i18n.t('alerts');
+    btn.setAttribute('aria-label', name);
 
     // Render alert items
     if (state.alerts.length === 0) {
-        list.innerHTML = '<div class="alert-empty">No active alerts</div>';
+        list.innerHTML = `<div class="alert-empty" data-i18n="no_active_alerts">${escapeHTML(i18n.t('no_active_alerts'))}</div>`;
     } else {
         list.innerHTML = state.alerts.map(a => `
             <div class="alert-item">

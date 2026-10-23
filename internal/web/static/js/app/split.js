@@ -4,7 +4,7 @@
    configurable from the dashboard or config file.
    ============================================================ */
 'use strict';
-import { state, colors, getChartMaxBound, graphMaxPrefs } from './state.js';
+import { state, colors, getChartMaxBound, graphMaxPrefs, lineIcon } from './state.js';
 import { writeJsonPref } from './prefs.js';
 import { diskKey, diskMember, diskLabel, diskTitle, diskDOMKey } from './disk-identity.js';
 import { createTimeSeriesChart } from './charts-init.js';
@@ -407,7 +407,7 @@ function _addSplitButtons() {
             btn.dataset.splitBtnType = type;
             if (idx === 0) btn.id = `btn-split-${type}`;
             btn.title = i18n.t('split_by_device') || 'Split by device';
-            btn.textContent = '⊟';
+            btn.replaceChildren(lineIcon('split'));
             btn.style.fontSize = '0.85rem';
             btn.style.padding = '0.15rem 0.35rem';
             btn.style.opacity = getSplitState(type) ? '1' : '0.5';
@@ -498,7 +498,7 @@ function _makeSplitCard(cardId, title, type, graphId = null) {
     joinBtn.className = 'btn-icon btn-split-chart';
     joinBtn.dataset.i18nTitle = 'join_charts';
     joinBtn.title = i18n.t('join_charts');
-    joinBtn.textContent = '⊞';
+    joinBtn.replaceChildren(lineIcon('join'));
     joinBtn.style.fontSize = '0.85rem';
     joinBtn.style.padding = '0.15rem 0.35rem';
     joinBtn.style.opacity = '0.5';
@@ -521,7 +521,7 @@ function _makeSplitCard(cardId, title, type, graphId = null) {
     expandBtn.className = 'btn-icon btn-expand-chart';
     expandBtn.dataset.i18nTitle = 'expand_chart';
     expandBtn.title = i18n.t('expand_chart');
-    expandBtn.textContent = '🔍';
+    expandBtn.replaceChildren(lineIcon('expand'));
     expandBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         _toggleExpandSplitCard(card);
@@ -598,7 +598,7 @@ function _addSettingsDropdown(header, actions, graphId, type) {
     sBtn.className = 'btn-icon';
     sBtn.dataset.i18nTitle = 'graph_bounds';
     sBtn.title = i18n.t('graph_bounds');
-    sBtn.textContent = '⚙️';
+    sBtn.replaceChildren(lineIcon('bounds'));
     sBtn.style.fontSize = '0.85rem';
     sBtn.style.padding = '0.15rem 0.35rem';
     sBtn.style.opacity = '0.5';
