@@ -1,10 +1,15 @@
 # Kula is deliberately bound to the host loopback interface.
 # The existing systemd-managed Caddy proxies HTTPS traffic to it.
-# Pin a release with KULA_VERSION=x.y.z (see README.md).
+# setup.sh builds the image from this repository by default and sets
+# KULA_IMAGE; KULA_SOURCE=image runs a published c0m4r/kula release instead
+# (see README.md).
 name: kula-monitor
 services:
   kula:
-    image: c0m4r/kula:${KULA_VERSION:-latest}
+    image: ${KULA_IMAGE:-c0m4r/kula:latest}
+    build:
+      context: ..
+      dockerfile: addons/docker/Dockerfile
     container_name: kula-monitor
     restart: unless-stopped
     pid: host
