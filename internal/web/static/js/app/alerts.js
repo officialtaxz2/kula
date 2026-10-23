@@ -105,6 +105,7 @@ function updateAlertUI() {
 export function toggleAlertDropdown() {
     state.alertDropdownOpen = !state.alertDropdownOpen;
     const dropdown = document.getElementById('alert-dropdown');
+    document.getElementById('btn-alerts')?.setAttribute('aria-expanded', String(state.alertDropdownOpen));
     if (state.alertDropdownOpen) {
         dropdown.classList.remove('hidden');
     } else {

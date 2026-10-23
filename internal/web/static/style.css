@@ -2244,6 +2244,29 @@ body.light-mode .host-chip-state {
     }
 }
 
+/* Very narrow phones: the second row drops its dividers and tightens up so
+   every control fits without a horizontal scroll. */
+@media (max-width: 420px) {
+    .header .time-controls,
+    .header .time-presets {
+        gap: 0.15rem;
+    }
+
+    .header .time-presets > .time-divider {
+        display: none;
+    }
+
+    .header .viewport-btn,
+    .header .btn-custom-range {
+        min-width: 1.85rem;
+        padding: 0 0.25rem;
+    }
+
+    .header #btn-live {
+        padding: 0 0.5rem;
+    }
+}
+
 /* ---- Alert System ---- */
 .alert-container {
     position: relative;

@@ -31,6 +31,15 @@ import { minimumZoomSpan } from './history-navigation.js';
 Chart.register(envelopePlugin, chartAccessibilityPlugin, crosshairPlugin, tooltipGesturePlugin);
 
 // ---- Chart Initialization ----
+// Network ticks share one unit and one precision per axis ("0, 2.5, 5 Mbps"),
+// so a step of 0.5 does not print "3.50 Mbps" beside "3 Mbps".
+function mbpsTick(value, _index, ticks) {
+    const values = ticks.map(tick => tick.value);
+    if (Math.max(...values) < 1) return formatMbps(value);
+    const digits = [0, 1, 2].find(d => values.every(v => Math.abs(v * 10 ** d - Math.round(v * 10 ** d)) < 1e-6)) ?? 2;
+    return `${value.toFixed(digits)} Mbps`;
+}
+
 // Replaces Chart.js's decimal ticks on a byte axis with steps of 1, 2, 4 or
 // 5 times a power of 1024 (or 128/256/512 of the unit below), about five per axis.
 function binaryByteTicks(axis) {
@@ -303,9 +312,9 @@ export function initCharts() {
         ticks: { ...countTicks, callback: v => formatBytesShort(v).replace('.0 ', ' ') + suffix },
     });
 
-    // CPU — total plus the two parts that explain a busy CPU
+    // CPU — total plus the parts that explain a busy CPU
     state.charts.cpu = createTimeSeriesChart('chart-cpu', [
-        series('user', 'c4', hidden),
+        series('user', 'c4'),
         series('system', 'c2'),
         series('iowait', 'c3'),
         series('steal', 'c5', hidden),
@@ -345,7 +354,7 @@ export function initCharts() {
     ], { min: 0, ...byteAxis() }, unit(formatBytesShort));
 
     // A floor of 10 Kbps keeps an idle link from labelling every tick "0 Kbps".
-    let networkYConfig = { suggestedMax: 0.01, ticks: { callback: v => v >= 1 && Number.isInteger(v) ? `${v} Mbps` : formatMbps(v) } };
+    let networkYConfig = { suggestedMax: 0.01, ticks: { callback: mbpsTick } };
     let networkMax = getChartMaxBound('network');
     if (networkMax !== undefined) networkYConfig.max = networkMax;
 

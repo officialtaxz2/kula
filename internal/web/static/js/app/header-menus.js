@@ -103,7 +103,7 @@ function timeEntries() {
         const match = /^(\d+)([mhd])$/.exec(short);
         const label = match ? i18n.t(`last_${match[1]}_${match[2]}`) : short;
         return { group: 'command_time', label, hint: short, terms: `${label} ${short}`, run: () => button.click(),
-            current: button.classList.contains('active') };
+            current: button.classList.contains('active'), focus: button, fallback: el('btn-time-menu') };
     });
     const custom = el('btn-custom-range');
     if (custom) {
@@ -246,7 +246,8 @@ export function initCommandMenu({ filterCharts }) {
         // or to the menu button that now holds it.
         const target = entry.focus;
         if (target && document.activeElement === document.body) {
-            (target.offsetParent ? target : target.closest('#more-container') && el('btn-more'))?.focus?.();
+            const holder = target.closest('#more-container') ? el('btn-more') : entry.fallback;
+            (target.offsetParent ? target : holder)?.focus?.();
         }
     };
 

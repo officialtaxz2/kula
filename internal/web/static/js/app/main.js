@@ -421,6 +421,7 @@ async function init() {
         const list = document.getElementById('time-presets-list');
         list.classList.toggle('open');
         state.timeDropdownOpen = list.classList.contains('open');
+        e.currentTarget.setAttribute('aria-expanded', String(state.timeDropdownOpen));
     });
     document.getElementById('btn-agg-menu').addEventListener('click', (e) => {
         e.stopPropagation();
@@ -448,6 +449,7 @@ async function init() {
             if (state.timeDropdownOpen) {
                 state.timeDropdownOpen = false;
                 document.getElementById('time-presets-list').classList.remove('open');
+                document.getElementById('btn-time-menu').setAttribute('aria-expanded', 'false');
             }
         });
     });
@@ -510,10 +512,12 @@ async function init() {
         if (state.alertDropdownOpen && !e.target.closest('#alert-container')) {
             state.alertDropdownOpen = false;
             document.getElementById('alert-dropdown').classList.add('hidden');
+            document.getElementById('btn-alerts').setAttribute('aria-expanded', 'false');
         }
         if (state.timeDropdownOpen && !e.target.closest('.time-presets')) {
             state.timeDropdownOpen = false;
             document.getElementById('time-presets-list').classList.remove('open');
+            document.getElementById('btn-time-menu').setAttribute('aria-expanded', 'false');
         }
         if (state.aggDropdownOpen && !e.target.closest('#btn-agg-menu') && !e.target.closest('#agg-presets-list')) {
             state.aggDropdownOpen = false;
