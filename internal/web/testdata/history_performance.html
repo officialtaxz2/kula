@@ -142,7 +142,7 @@
                 if (event.detail?.keyboard) keyboardPoint = event.detail;
             }, { once: true });
             charts[0].canvas.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-            const defaultDataControlsOff = !document.querySelector('.btn-chart-data') && !document.querySelector('.chart-data-panel');
+            const defaultDataControlsOn = Boolean(document.querySelector('.btn-chart-data')) && !document.querySelector('.chart-data-panel');
             charts[0].$kulaAccessibility.options.getDataControlsEnabled = () => true;
             charts[0].update('none');
             const optInIsLazy = !document.querySelector('.chart-data-panel');
@@ -181,7 +181,7 @@
             }
 
             const result = {
-                status: keyboardGesture && accessibleAlternatives && timezoneTooltip && defaultDataControlsOff && optInIsLazy && window.innerHeight > 0 && updatedCharts > 0 &&
+                status: keyboardGesture && accessibleAlternatives && timezoneTooltip && defaultDataControlsOn && optInIsLazy && window.innerHeight > 0 && updatedCharts > 0 &&
                     updatedCharts < charts.length && renderedCharts === updatedCharts
                     ? 'pass'
                     : 'fail',
@@ -201,7 +201,7 @@
                 keyboard_gesture: keyboardGesture,
                 timezone_tooltip: timezoneTooltip,
                 accessible_alternatives: accessibleAlternatives,
-                data_controls_off_by_default: defaultDataControlsOff,
+                data_controls_on_by_default: defaultDataControlsOn,
                 data_panel_lazy: optInIsLazy,
             };
             document.getElementById('results').textContent = JSON.stringify(result);

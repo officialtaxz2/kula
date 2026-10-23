@@ -226,7 +226,7 @@ node internal/web/testdata/history_performance_test.mjs
 
 Its JSON result must report
 `status: "pass"`, fewer updated charts than registered charts, the same visible count for
-crosshair renders, working keyboard gestures, exact UTC tooltips, off-by-default Data controls,
+crosshair renders, working keyboard gestures, exact UTC tooltips, on-by-default Data controls,
 and a lazy 50-row table with CSV after opt-in. The fixture also appends and trims points on an
 off-screen chart for 60 simulated updates. Each controller flush must leave zero retained
 Chart.js mutation records without a full chart update, and a hidden point must move from index

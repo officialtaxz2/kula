@@ -168,8 +168,8 @@ Click anywhere outside the picker, or press Escape, to close it without applying
 Every time-series canvas has a name, accessible summary and keyboard controls. History
 transitions and keyboard point changes are announced; pointer hover remains silent.
 
-Data controls are off by default. Enable **Show chart data controls** in **Customization →
-Charts**, then choose **Data** on a card. The table is created on first use and shows the latest
+Data controls are on by default (**Show chart data controls** in **Customization → Charts**);
+choose **Data** on a card. The table is created on first use and shows the latest
 50 visible timestamps, including representative values and trusted extrema. **Download CSV**
 exports all observations represented in that chart's viewport, including rows omitted from the
 preview. Text that could be interpreted as a spreadsheet formula is neutralized. Disabling the
