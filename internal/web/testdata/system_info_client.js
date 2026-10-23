@@ -374,7 +374,10 @@ export async function testSystemInfo() {
         document.getElementById('system-info-back').focus();
         document.getElementById('system-info-back').click();
         await waitFor(() => page.classList.contains('hidden') && location.hash !== '#system-info');
-        check(document.activeElement === infoButton, 'Back navigation left keyboard focus inside the hidden page');
+        // The System Info entry sits in the header's "More" menu, which is closed
+        // by now, so the focus returns to that menu's button.
+        const opener = infoButton.offsetParent ? infoButton : document.getElementById('btn-more');
+        check(opener && document.activeElement === opener, 'Back navigation left keyboard focus inside the hidden page');
         check(!content.children.length && !infoButton.hasAttribute('aria-current'),
             'Back navigation did not leave the System Info page cleanly');
     } finally {

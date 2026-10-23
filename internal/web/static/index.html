@@ -36,6 +36,7 @@
     <link rel="modulepreload" href="js/app/container-apps.js" integrity="{{sri `js/app/container-apps.js`}}" nonce="{{.Nonce}}" crossorigin="anonymous">
     <link rel="modulepreload" href="js/app/charts-data.js" integrity="{{sri `js/app/charts-data.js`}}" nonce="{{.Nonce}}" crossorigin="anonymous">
     <link rel="modulepreload" href="js/app/header.js" integrity="{{sri `js/app/header.js`}}" nonce="{{.Nonce}}" crossorigin="anonymous">
+    <link rel="modulepreload" href="js/app/header-menus.js" integrity="{{sri `js/app/header-menus.js`}}" nonce="{{.Nonce}}" crossorigin="anonymous">
     <link rel="modulepreload" href="js/app/system-info.js" integrity="{{sri `js/app/system-info.js`}}" nonce="{{.Nonce}}" crossorigin="anonymous">
     <link rel="modulepreload" href="js/app/gauges.js" integrity="{{sri `js/app/gauges.js`}}" nonce="{{.Nonce}}" crossorigin="anonymous">
     <link rel="modulepreload" href="js/app/alerts.js" integrity="{{sri `js/app/alerts.js`}}" nonce="{{.Nonce}}" crossorigin="anonymous">
@@ -94,24 +95,92 @@
                 <a href="./" class="header-link"><span class="logo"><img src="kula.svg" alt="" /></span>
                     <h1>KULA</h1>
                 </a>
-                <span id="hostname" class="hostname"></span>
+                <!-- Host and live connection state -->
+                <span class="host-chip" id="host-chip">
+                    <span id="connection-status" class="status-dot connected" role="img" data-i18n-title="connected"
+                        data-i18n-aria-label="connected" title="Connected" aria-label="Connected"></span>
+                    <span id="hostname" class="hostname"></span>
+                    <span class="host-chip-state" data-i18n="disconnected">Disconnected</span>
+                </span>
             </div>
+            <!-- Time controls (part of the sticky header so they stay reachable while scrolling charts) -->
+            <section class="time-controls">
+                <div class="time-presets">
+                    <button id="btn-time-menu" class="btn-icon btn-time-menu" data-i18n-title="time_presets"
+                        data-i18n-aria-label="time_presets" title="Time presets" aria-label="Time presets"
+                        aria-controls="time-presets-list" aria-expanded="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2"/></svg><span id="time-menu-label" class="time-menu-label">5m</span><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></button>
+                    <div id="time-presets-list" class="time-presets-list" role="group" data-i18n-aria-label="time_presets" aria-label="Time presets">
+                        <button class="time-btn" data-range="60">1m</button>
+                        <button class="time-btn active" data-range="300">5m</button>
+                        <button class="time-btn" data-range="900">15m</button>
+                        <button class="time-btn time-btn-extra" data-range="1800">30m</button>
+                        <button class="time-btn" data-range="3600">1h</button>
+                        <button class="time-btn time-btn-extra" data-range="10800">3h</button>
+                        <button class="time-btn" data-range="21600">6h</button>
+                        <button class="time-btn time-btn-extra" data-range="43200">12h</button>
+                        <button class="time-btn" data-range="86400">24h</button>
+                        <button class="time-btn time-btn-extra" data-range="259200">3d</button>
+                        <button class="time-btn" data-range="604800">7d</button>
+                        <button class="time-btn time-btn-extra" data-range="2592000">30d</button>
+                    </div>
+                    <span class="time-divider" id="agg-desktop-divider" aria-hidden="true"></span>
+                    <button id="btn-agg-menu" class="btn-icon btn-time-menu hidden" data-i18n-title="aggregation"
+                        data-i18n-aria-label="aggregation" title="Aggregation" aria-label="Aggregation"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V10M12 20V4M19 20v-7"/></svg></button>
+                    <div id="agg-presets-list" class="time-presets-list hidden">
+                        <button class="time-btn active" data-agg="avg" data-i18n="avg">Avg</button>
+                        <button class="time-btn" data-agg="min" data-i18n="min">Min</button>
+                        <button class="time-btn" data-agg="max" data-i18n="max">Max</button>
+                    </div>
+                    <span class="time-divider hidden" id="agg-divider" aria-hidden="true"></span>
+                    <button class="time-btn btn-custom-range" id="btn-custom-range" data-i18n-title="custom_range"
+                        title="Custom range" aria-label="Custom range" data-i18n-aria-label="custom_range"
+                        aria-controls="time-custom" aria-expanded="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg></button>
+                    <span class="time-divider" aria-hidden="true"></span>
+                    <div class="viewport-actions" role="group" aria-label="Historical navigation"
+                        data-i18n-aria-label="historical_navigation">
+                        <button class="time-btn viewport-btn active" id="btn-live" title="Live" aria-label="Live"
+                            data-i18n-title="live" data-i18n-aria-label="live"><span class="live-dot" aria-hidden="true"></span><span data-i18n="live">Live</span></button>
+                        <button class="time-btn viewport-btn" id="btn-history-back" title="Back" aria-label="Back"
+                            data-i18n-title="history_back" data-i18n-aria-label="history_back" disabled><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button>
+                        <button class="time-btn viewport-btn" id="btn-history-forward" title="Forward" aria-label="Forward"
+                            data-i18n-title="history_forward" data-i18n-aria-label="history_forward" disabled><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button>
+                        <button class="time-btn viewport-btn" id="btn-zoom-out" title="Zoom out" aria-label="Zoom out"
+                            data-i18n-title="zoom_out" data-i18n-aria-label="zoom_out" disabled><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2M8.5 11h5"/></svg></button>
+                    </div>
+                    <span id="loading-spinner" class="loading-spinner hidden" data-i18n-title="history_loading" title="Loading historical data">⏳</span>
+                </div>
+                <div class="time-info">
+                    <span id="time-range-display" data-i18n="last_5_m">Last 5 minutes</span>
+                    <span id="pinned-time" class="pinned-time hidden"></span>
+                    <span id="pinned-time-announcement" class="sr-only" aria-live="polite"></span>
+                    <span id="history-status-announcement" class="sr-only" role="status"
+                        aria-live="polite" aria-atomic="true"></span>
+                    <span id="sampling-info" class="sampling-info"></span>
+                </div>
+            </section>
             <div class="header-right">
-                <!-- Chart search -->
-                <input type="text" id="chart-search" class="chart-search-input" data-i18n-placeholder="search_charts" placeholder="Search charts..." autocomplete="off" spellcheck="false">
-                <!-- Connection status -->
-                <span id="connection-status" class="status-dot connected" data-i18n-title="connected" title="Connected"></span>
+                <!-- Chart search doubles as the command menu: Ctrl+K or / opens it from anywhere -->
+                <div class="command-search" id="command-search">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
+                    <input type="text" id="chart-search" class="chart-search-input" role="combobox"
+                        aria-autocomplete="list" aria-expanded="false" aria-controls="command-menu"
+                        data-i18n-placeholder="search_or_command" data-i18n-aria-label="search_or_command"
+                        placeholder="Search or run a command" aria-label="Search or run a command"
+                        autocomplete="off" spellcheck="false">
+                    <kbd class="command-search-key" aria-hidden="true">Ctrl K</kbd>
+                    <div id="command-menu" class="command-menu hidden" role="listbox" tabindex="-1"
+                        data-i18n-aria-label="search_or_command" aria-label="Search or run a command"></div>
+                </div>
+                <span id="clock" class="clock"></span>
                 <!-- Pause/Resume -->
-                <button id="btn-pause" class="btn-icon" data-i18n-title="pause_resume" title="Pause/Resume">⏸</button>
-                <!-- Current system and hardware inventory -->
-                <button id="btn-info" class="btn-icon btn-info" data-i18n-title="system_info"
-                    data-i18n-aria-label="system_info" title="System Info" aria-controls="system-info-page"
-                    aria-expanded="false" aria-label="System Info"><span aria-hidden="true">📡</span></button>
+                <button id="btn-pause" class="btn-icon" data-i18n-title="pause_resume" data-i18n-aria-label="pause_resume"
+                    title="Pause/Resume" aria-label="Pause/Resume" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6v12M15 6v12"/></svg></button>
                 <!-- Alert bell -->
                 <div class="alert-container" id="alert-container">
-                    <button id="btn-alerts" class="btn-icon btn-alert" data-i18n-title="alerts" title="Alerts">
-                        🔔
-                        <span id="alert-badge" class="alert-badge hidden">0</span>
+                    <button id="btn-alerts" class="btn-icon btn-alert" data-i18n-title="alerts" title="Alerts"
+                        aria-label="Alerts" aria-controls="alert-dropdown" aria-expanded="false">
+                        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
+                        <span id="alert-badge" class="alert-badge hidden" aria-hidden="true">0</span>
                     </button>
                     <div id="alert-dropdown" class="alert-dropdown hidden">
                         <div class="alert-dropdown-header" data-i18n="alerts">Alerts</div>
@@ -120,25 +189,11 @@
                         </div>
                     </div>
                 </div>
-                <!-- Theme toggle -->
-                <button id="btn-theme" class="btn-icon" data-i18n-title="toggle_theme"
-                    title="Toggle light/dark mode">🌓</button>
-                <!-- Focus mode -->
-                <button id="btn-focus" class="btn-icon" data-i18n-title="focus_mode" title="Focus mode">🎯</button>
-                <!-- AI Assistant -->
-                <button id="btn-ai" class="btn-icon hidden" data-i18n-title="ai_assistant" title="AI Assistant">🤖</button>
-                <!-- Game easter egg -->
-                {{if .EasterEgg}}<a href="game.html" class="btn-icon btn-game" data-i18n-title="space_invaders" title="Space Invaders"
-                    id="btn-game">🎮</a>{{end}}
-                <!-- Layout toggle -->
-                <button id="btn-layout" class="btn-icon" data-i18n-title="switch_list"
-                    title="Switch to list layout">⊞</button>
-                <button id="btn-logout" class="btn-icon hidden" data-i18n-title="logout" title="Logout">🔒</button>
-                <span id="clock" class="clock"></span>
                 <!-- Customization / settings -->
                 <div class="header-settings" id="settings-container">
                     <button id="btn-settings" class="btn-icon" data-i18n-title="customization" title="Customization"
-                        aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu">⚙️</button>
+                        aria-haspopup="true" aria-expanded="false" aria-controls="settings-menu"
+                        data-i18n-aria-label="customization" aria-label="Customization"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
                     <div id="settings-menu" class="settings-menu hidden" role="group" aria-labelledby="settings-menu-title">
                         <div class="settings-menu-header" id="settings-menu-title" data-i18n="customization">Customization</div>
                         <div class="settings-group">
@@ -256,64 +311,25 @@
                     </div>
                 </div>
                 {{end}}
+                <!-- Less frequent actions -->
+                <div class="header-more" id="more-container">
+                    <button id="btn-more" class="btn-icon" aria-haspopup="menu" aria-expanded="false" aria-controls="more-menu"
+                        data-i18n-title="more_actions" data-i18n-aria-label="more_actions" title="More actions"
+                        aria-label="More actions"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></svg></button>
+                    <div id="more-menu" class="more-menu hidden" role="menu" data-i18n-aria-label="more_actions" aria-label="More actions">
+                        <!-- Current system and hardware inventory -->
+                        <button id="btn-info" class="more-item btn-info" role="menuitem" aria-controls="system-info-page"
+                            aria-expanded="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="6" rx="1.5"/><rect x="4" y="14" width="16" height="6" rx="1.5"/><path d="M8 7h.01M8 17h.01"/></svg><span data-i18n="system_info">System Info</span></button>
+                        <button id="btn-focus" class="more-item" role="menuitem"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg><span data-i18n="focus_mode">Focus mode</span></button>
+                        <button id="btn-layout" class="more-item" role="menuitem"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/></svg><span id="btn-layout-label" data-i18n="switch_list">Switch to list layout</span></button>
+                        <button id="btn-theme" class="more-item" role="menuitem"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path class="icon-fill" d="M12 4a8 8 0 0 1 0 16z"/></svg><span data-i18n="toggle_theme">Toggle light/dark mode</span></button>
+                        <button id="btn-ai" class="more-item hidden" role="menuitem"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5 13.8 11.3 12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M18 15l.8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8z"/></svg><span data-i18n="ai_assistant">AI Assistant</span></button>
+                        {{if .EasterEgg}}<a href="game.html" class="more-item btn-game" id="btn-game" role="menuitem"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="8" width="18" height="10" rx="3"/><path d="M8 11v4M6 13h4M15.5 12.5h.01M17.5 14.5h.01"/></svg><span data-i18n="space_invaders">Space Invaders</span></a>{{end}}
+                        <button id="btn-logout" class="more-item hidden" role="menuitem"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span data-i18n="logout">Logout</span></button>
+                    </div>
+                </div>
             </div>
         </header>
-
-        <!-- Time controls (sticky with header so they stay reachable while scrolling charts) -->
-        <section class="time-controls">
-            <div class="time-presets">
-                <button id="btn-time-menu" class="btn-icon btn-time-menu" data-i18n-title="time_presets"
-                    title="Time presets">⋮</button>
-                <div id="time-presets-list" class="time-presets-list">
-                    <button class="time-btn" data-range="60">1m</button>
-                    <button class="time-btn active" data-range="300">5m</button>
-                    <button class="time-btn" data-range="900">15m</button>
-                    <button class="time-btn" data-range="1800">30m</button>
-                    <button class="time-btn" data-range="3600">1h</button>
-                    <button class="time-btn" data-range="10800">3h</button>
-                    <button class="time-btn" data-range="21600">6h</button>
-                    <button class="time-btn" data-range="43200">12h</button>
-                    <button class="time-btn" data-range="86400">24h</button>
-                    <button class="time-btn" data-range="259200">3d</button>
-                    <button class="time-btn" data-range="604800">7d</button>
-                    <button class="time-btn" data-range="2592000">30d</button>
-                </div>
-                <span class="time-divider" id="agg-desktop-divider">│</span>
-                <button id="btn-agg-menu" class="btn-icon btn-time-menu hidden" data-i18n-title="aggregation"
-                    title="Aggregation">📊</button>
-                <div id="agg-presets-list" class="time-presets-list hidden">
-                    <button class="time-btn active" data-agg="avg" data-i18n="avg">Avg</button>
-                    <button class="time-btn" data-agg="min" data-i18n="min">Min</button>
-                    <button class="time-btn" data-agg="max" data-i18n="max">Max</button>
-                </div>
-                <span class="time-divider hidden" id="agg-divider">│</span>
-                <button class="time-btn" id="btn-custom-range" data-i18n-title="custom_range"
-                    title="Custom range" aria-label="Custom range" data-i18n-aria-label="custom_range"
-                    aria-controls="time-custom" aria-expanded="false">📅</button>
-                <span class="time-divider">│</span>
-                <div class="viewport-actions" role="group" aria-label="Historical navigation"
-                    data-i18n-aria-label="historical_navigation">
-                    <button class="time-btn viewport-btn active" id="btn-live" title="Live" aria-label="Live"
-                        data-i18n="live" data-i18n-title="live" data-i18n-aria-label="live">Live</button>
-                    <button class="time-btn viewport-btn" id="btn-history-back" title="Back" aria-label="Back"
-                        data-i18n-title="history_back" data-i18n-aria-label="history_back" disabled>←</button>
-                    <button class="time-btn viewport-btn" id="btn-history-forward" title="Forward" aria-label="Forward"
-                        data-i18n-title="history_forward" data-i18n-aria-label="history_forward" disabled>→</button>
-                    <button class="time-btn viewport-btn" id="btn-zoom-out" title="Zoom out" aria-label="Zoom out"
-                        data-i18n-title="zoom_out" data-i18n-aria-label="zoom_out" disabled>−</button>
-                    </div>
-                <span class="time-divider">│</span>
-                <span id="loading-spinner" class="loading-spinner hidden" data-i18n-title="history_loading" title="Loading historical data">⏳</span>
-            </div>
-            <div class="time-info">
-                <span id="time-range-display" data-i18n="last_5_m">Last 5 minutes</span>
-                <span id="pinned-time" class="pinned-time hidden"></span>
-                <span id="pinned-time-announcement" class="sr-only" aria-live="polite"></span>
-                <span id="history-status-announcement" class="sr-only" role="status"
-                    aria-live="polite" aria-atomic="true"></span>
-                <span id="sampling-info" class="sampling-info"></span>
-            </div>
-        </section>
 
         <!-- Custom time range picker (separate row for responsiveness) -->
         <form class="time-custom-section hidden" id="time-custom" aria-labelledby="custom-range-title" novalidate>
@@ -431,7 +447,7 @@
         <!-- Charts grid -->
         <h2 class="section-title" data-i18n="system_metrics">System Metrics</h2>
         <section class="charts-grid" id="charts-grid">
-            <div class="chart-card" id="card-cpu">
+            <div class="chart-card chart-card-main" id="card-cpu">
                 <div class="chart-header">
                     <h3 data-i18n="cpu_usage">CPU Usage</h3>
                     <span class="chart-subtitle" id="cpu-subtitle"></span>
@@ -439,7 +455,7 @@
                 <div class="chart-body"><canvas id="chart-cpu"></canvas></div>
             </div>
 
-            <div class="chart-card" id="card-loadavg">
+            <div class="chart-card chart-card-main" id="card-loadavg">
                 <div class="chart-header">
                     <h3 data-i18n="load_average">Load Average</h3>
                     <span class="chart-subtitle" id="lavg-subtitle"></span>
@@ -447,7 +463,7 @@
                 <div class="chart-body"><canvas id="chart-loadavg"></canvas></div>
             </div>
 
-            <div class="chart-card" id="card-memory">
+            <div class="chart-card chart-card-main" id="card-memory">
                 <div class="chart-header">
                     <h3 data-i18n="memory_usage">Memory Usage</h3>
                     <span class="chart-subtitle" id="mem-subtitle"></span>
@@ -455,15 +471,7 @@
                 <div class="chart-body"><canvas id="chart-memory"></canvas></div>
             </div>
 
-            <div class="chart-card" id="card-swap">
-                <div class="chart-header">
-                    <h3 data-i18n="swap_usage">Swap Usage</h3>
-                    <span class="chart-subtitle" id="swap-subtitle"></span>
-                </div>
-                <div class="chart-body"><canvas id="chart-swap"></canvas></div>
-            </div>
-
-            <div class="chart-card" id="card-network">
+            <div class="chart-card chart-card-main" id="card-network">
                 <div class="chart-header">
                     <h3 data-i18n="network_throughput">Network Throughput</h3>
                     <span class="chart-subtitle" id="net-subtitle"></span>
@@ -472,6 +480,14 @@
                     </div>
                 </div>
                 <div class="chart-body"><canvas id="chart-network"></canvas></div>
+            </div>
+
+            <div class="chart-card" id="card-swap">
+                <div class="chart-header">
+                    <h3 data-i18n="swap_usage">Swap Usage</h3>
+                    <span class="chart-subtitle" id="swap-subtitle"></span>
+                </div>
+                <div class="chart-body"><canvas id="chart-swap"></canvas></div>
             </div>
 
             <div class="chart-card" id="card-pps">

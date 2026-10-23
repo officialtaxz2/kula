@@ -215,9 +215,16 @@ function hasFiniteEnvelope(dataset, offset) {
     return false;
 }
 
+// The table and CSV are the keyboard route to every series, so they keep the
+// ones hidden behind the pointer-only canvas legend.
+function allDatasets(chart) {
+    if (!Array.isArray(chart?.data?.datasets)) return [];
+    return chart.data.datasets.map((dataset, index) => ({ dataset, index }));
+}
+
 function tableColumns(chart) {
     const columns = [];
-    visibleDatasets(chart).forEach(({ dataset, index }) => {
+    allDatasets(chart).forEach(({ dataset, index }) => {
         const label = dataset.label || `Series ${index + 1}`;
         columns.push({ dataset, index, kind: 'value', label });
         if (hasFiniteEnvelope(dataset, 0)) {

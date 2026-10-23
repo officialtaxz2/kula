@@ -67,8 +67,8 @@ function migrateLegacyFocusIds() {
 migrateLegacyFocusIds();
 
 export const chartCardIds = [
-    'card-cpu', 'card-loadavg', 'card-memory', 'card-swap',
-    'card-network', 'card-pps', 'card-connections',
+    'card-cpu', 'card-loadavg', 'card-memory', 'card-network',
+    'card-swap', 'card-pps', 'card-connections',
     'card-disk-io', 'card-disk-space',
     'card-gpu-load', 'card-vram',
     'card-processes', 'card-entropy', 'card-self',

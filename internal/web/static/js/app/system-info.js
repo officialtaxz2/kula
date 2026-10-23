@@ -1198,7 +1198,11 @@ function hideSystemInfo({ clear = true, restoreScroll = true } = {}) {
         el('system-info-content')?.replaceChildren();
         setStatus('');
     }
-    if (restoreFocus && enabled) el('btn-info')?.focus({ preventScroll: true });
+    if (restoreFocus && enabled) {
+        // btn-info lives in the closed "More" menu; its toggle takes the focus back.
+        const info = el('btn-info');
+        (info?.offsetParent ? info : el('btn-more'))?.focus({ preventScroll: true });
+    }
     if (wasOpen && restoreScroll) {
         requestAnimationFrame(() => {
             window.scrollTo({ top: dashboardScroll, behavior: 'instant' });

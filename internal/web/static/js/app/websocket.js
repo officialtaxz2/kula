@@ -139,6 +139,11 @@ export function updateConnectionStatus(connected) {
         const status = connected ? 'connected' : 'disconnected';
         dot.className = 'status-dot ' + status;
         dot.dataset.i18nTitle = status;
+        dot.dataset.i18nAriaLabel = status;
         dot.title = i18n.t(status);
+        dot.setAttribute('aria-label', i18n.t(status));
     }
+    // The host chip turns red and names the state, so a stalled view is not
+    // told apart by the dot colour alone.
+    document.getElementById('host-chip')?.classList.toggle('disconnected', !connected);
 }

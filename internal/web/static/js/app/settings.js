@@ -9,7 +9,7 @@
    who never opened the menu.
    ============================================================ */
 'use strict';
-import { state } from './state.js';
+import { state, seriesColor } from './state.js';
 import { readJsonPref, removePref, writeJsonPref, writePref } from './prefs.js';
 import { forEachRegisteredChart, queueChartUpdate } from './chart-controller.js';
 
@@ -48,6 +48,9 @@ export function applyTheme() {
 
     forEachRegisteredChart(chart => {
         if (!chart) return;
+        chart.data.datasets.forEach(dataset => {
+            if (dataset.kulaRole) dataset.borderColor = seriesColor(dataset.kulaRole, isLight ? 'light' : 'dark');
+        });
         if (chart.options.scales.x) {
             chart.options.scales.x.grid.color = gridColor;
             chart.options.scales.x.ticks.color = textColor;

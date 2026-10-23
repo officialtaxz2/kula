@@ -3,7 +3,7 @@
    dynamically created chart cards.
    ============================================================ */
 'use strict';
-import { state } from './state.js';
+import { lineIcon, state } from './state.js';
 import { i18n } from './i18n.js';
 import { formatFullTimestamp } from './format.js';
 import { saveChartImage } from './chart-image.js';
@@ -202,7 +202,7 @@ export function addExpandButton(card) {
     btn.title = i18n.t('expand_chart');
     btn.setAttribute('aria-label', btn.title);
     btn.setAttribute('aria-expanded', 'false');
-    btn.textContent = '🔍';
+    btn.replaceChildren(lineIcon('expand'));
     btn.addEventListener('click', event => {
         event.stopPropagation();
         toggleExpandChart(card.id);
@@ -246,7 +246,7 @@ export function addSaveImageButton(card) {
     btn.dataset.i18nAriaLabel = 'save_chart_image';
     btn.title = translated !== 'save_chart_image' ? translated : 'Save as image';
     btn.setAttribute('aria-label', btn.title);
-    btn.textContent = '📷';
+    btn.replaceChildren(lineIcon('image'));
     btn.addEventListener('click', event => {
         event.stopPropagation();
         saveCardImage(card, btn);

@@ -7,6 +7,7 @@ import { state } from './state.js';
 import { writePref } from './prefs.js';
 import { apiUrl } from './api.js';
 import { i18n } from './i18n.js';
+import { syncTimeMenuLabel } from './header.js';
 import { forEachRegisteredChart, queueAllChartUpdates } from './chart-controller.js';
 import {
     fetchCustomHistory,
@@ -63,6 +64,9 @@ export function initializeViewportNavigation() {
 
 
 // ---- Pause/Resume ----
+const PAUSE_ICON = 'M9 6v12M15 6v12';
+const PLAY_ICON = 'M8 5.5v13l10.5-6.5z';
+
 export function syncPauseState() {
     // A wall display's resting cursor must not freeze TV mode.
     const pausedHover = state.pausedHover && !isTvModeActive();
@@ -70,7 +74,9 @@ export function syncPauseState() {
     if (shouldPause !== state.paused) {
         state.paused = shouldPause;
         const btn = document.getElementById('btn-pause');
-        btn.textContent = state.paused ? '▶' : '⏸';
+        // Swap only the glyph path so the button keeps its SVG and accessible name.
+        btn.querySelector('svg path')?.setAttribute('d', state.paused ? PLAY_ICON : PAUSE_ICON);
+        btn.setAttribute('aria-pressed', String(state.paused));
         btn.classList.toggle('paused', state.paused);
         if (state.ws?.readyState === WebSocket.OPEN) {
             state.ws.send(JSON.stringify({ action: state.paused ? 'pause' : 'resume' }));
@@ -97,13 +103,17 @@ export function applyLayout() {
     if (state.layoutMode === 'list') {
         dashboard.classList.add('layout-list');
         btn.classList.add('layout-active');
-        btn.textContent = '⊟';
-        btn.title = i18n.t('switch_grid');
     } else {
         dashboard.classList.remove('layout-list');
         btn.classList.remove('layout-active');
-        btn.textContent = '⊞';
-        btn.title = i18n.t('switch_list');
+    }
+    // The menu item names the layout it switches to; data-i18n keeps it right
+    // after a language change.
+    const label = document.getElementById('btn-layout-label');
+    if (label) {
+        const key = state.layoutMode === 'list' ? 'switch_grid' : 'switch_list';
+        label.dataset.i18n = key;
+        label.textContent = i18n.t(key);
     }
 
     // Keep chart instances, data and legend selections across CSS layout changes.
@@ -149,6 +159,7 @@ export function syncTimeRangeUI(seconds) {
     document.querySelectorAll('.time-btn[data-range]').forEach(b => b.classList.remove('active'));
     document.querySelector(`.time-btn[data-range="${seconds}"]`)?.classList.add('active');
     document.getElementById('btn-custom-range')?.classList.remove('active');
+    syncTimeMenuLabel();
 
     const labels = {
         60: i18n.t('last_1_m'), 300: i18n.t('last_5_m'), 900: i18n.t('last_15_m'), 1800: i18n.t('last_30_m'),
@@ -681,6 +692,7 @@ export function zoomOutViewport() {
 export function syncCustomRangeUI(fromDate, toDate, { preserveDraft = false } = {}) {
     document.querySelectorAll('.time-btn[data-range]').forEach(b => b.classList.remove('active'));
     document.getElementById('btn-custom-range')?.classList.add('active');
+    syncTimeMenuLabel();
 
     if (!preserveDraft && endpointElement('start', 'date')) writePickerDates(fromDate, toDate);
 

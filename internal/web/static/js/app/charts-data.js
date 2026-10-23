@@ -8,7 +8,7 @@ import { writePref } from './prefs.js';
 import { diskKey, diskMember, diskLabel, diskTitle, migrateDiskSelection } from './disk-identity.js';
 import { formatBytesShort, formatMetricNumber, formatRangeTimestamp } from './format.js';
 import { createTimeSeriesChart, setChartTimeRange, updateChartLabels } from './charts-init.js';
-import { updateHeader, updateSubtitles } from './header.js';
+import { syncTimeMenuLabel, updateHeader, updateSubtitles } from './header.js';
 import { updateGauges } from './gauges.js';
 import { evaluateAlerts } from './alerts.js';
 import { applyStoredFocusMode } from './focus-mode.js';
@@ -1486,6 +1486,7 @@ export function syncZoom(detail) {
     state.customTo = new Date(max);
     document.querySelectorAll('.time-btn[data-range]').forEach(button => button.classList.remove('active'));
     document.getElementById('btn-custom-range')?.classList.add('active');
+    syncTimeMenuLabel();
     const fmt = date => formatRangeTimestamp(date, state.timeZone, i18n.currentLang);
     const zone = state.timeZone === 'utc' ? i18n.t('time_zone_utc') : i18n.t('time_zone_local');
     document.getElementById('time-range-display').textContent =

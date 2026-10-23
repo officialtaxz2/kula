@@ -4,7 +4,7 @@
    Must be loaded LAST after all other modules.
    ============================================================ */
 'use strict';
-import { graphMaxPrefs, state } from './state.js';
+import { graphMaxPrefs, lineIcon, state } from './state.js';
 import { writeJsonPref, writePref } from './prefs.js';
 import { initCharts } from './charts-init.js';
 import { i18n } from './i18n.js';
@@ -60,6 +60,7 @@ import { sharedCrosshair } from './chart-interactions.js';
 import { announceChartCursor, updateChartAccessibility } from './chart-accessibility.js';
 import { formatFullTimestamp, normalizeTimeZone } from './format.js';
 import { updateHeader } from './header.js';
+import { initCommandMenu, initMoreMenu } from './header-menus.js';
 
 function setupHoverPause() {
     document.querySelectorAll('.chart-card').forEach(attachHoverPauseToCard);
@@ -106,7 +107,7 @@ function setupChartActions() {
             settingsButton.className = 'btn-icon';
             settingsButton.dataset.i18nTitle = 'graph_bounds';
             settingsButton.title = i18n.t('graph_bounds');
-            settingsButton.textContent = '⚙️';
+            settingsButton.replaceChildren(lineIcon('bounds'));
             settingsButton.style.fontSize = '0.85rem';
             settingsButton.style.padding = '0.15rem 0.35rem';
             settingsButton.style.opacity = '0.5';
@@ -420,6 +421,7 @@ async function init() {
         const list = document.getElementById('time-presets-list');
         list.classList.toggle('open');
         state.timeDropdownOpen = list.classList.contains('open');
+        e.currentTarget.setAttribute('aria-expanded', String(state.timeDropdownOpen));
     });
     document.getElementById('btn-agg-menu').addEventListener('click', (e) => {
         e.stopPropagation();
@@ -447,6 +449,7 @@ async function init() {
             if (state.timeDropdownOpen) {
                 state.timeDropdownOpen = false;
                 document.getElementById('time-presets-list').classList.remove('open');
+                document.getElementById('btn-time-menu').setAttribute('aria-expanded', 'false');
             }
         });
     });
@@ -509,10 +512,12 @@ async function init() {
         if (state.alertDropdownOpen && !e.target.closest('#alert-container')) {
             state.alertDropdownOpen = false;
             document.getElementById('alert-dropdown').classList.add('hidden');
+            document.getElementById('btn-alerts').setAttribute('aria-expanded', 'false');
         }
         if (state.timeDropdownOpen && !e.target.closest('.time-presets')) {
             state.timeDropdownOpen = false;
             document.getElementById('time-presets-list').classList.remove('open');
+            document.getElementById('btn-time-menu').setAttribute('aria-expanded', 'false');
         }
         if (state.aggDropdownOpen && !e.target.closest('#btn-agg-menu') && !e.target.closest('#agg-presets-list')) {
             state.aggDropdownOpen = false;
@@ -531,6 +536,8 @@ async function init() {
             filterCharts(query);
         });
     }
+    initCommandMenu({ filterCharts });
+    initMoreMenu();
 
     // Re-enabling the gauge row leaves it holding whatever was last painted
     // before it was hidden; repaint it from the latest sample right away
