@@ -1,0 +1,23 @@
+# Kula is deliberately bound to the host loopback interface.
+# The existing systemd-managed Caddy proxies HTTPS traffic to it.
+# Pin a release with KULA_VERSION=x.y.z (see README.md).
+name: kula-monitor
+services:
+  kula:
+    image: c0m4r/kula:${KULA_VERSION:-latest}
+    container_name: kula-monitor
+    restart: unless-stopped
+    pid: host
+    network_mode: host
+    environment:
+      KULA_LISTEN: "127.0.0.1"
+      KULA_PORT: "27960"
+      KULA_DIRECTORY: "/app/data"
+      KULA_MOUNTS_DETECTION: "host"
+    volumes:
+      - /proc:/proc:ro
+      - kula_data:/app/data
+
+volumes:
+  kula_data:
+    name: kula-monitor-data
