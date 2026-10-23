@@ -8,7 +8,7 @@ It lives in its own directory and touches no upstream file, so syncing this fork
 ## Requirements
 
 - Linux server with Docker Engine and `docker compose` plugin already working
-- Caddy v2.8+ running as a systemd service with default `/etc/caddy/Caddyfile` (or pass `CADDYFILE=/custom/path`)
+- Caddy v2 running as a systemd service with default `/etc/caddy/Caddyfile` (or pass `CADDYFILE=/custom/path`)
 - `curl`, `bash`, `git`, standard shell utilities
 - An available subdomain whose A/AAAA records resolve to the VPS, plus public ports 80/443 for automatic Caddy TLS
 - Sudo/root access to install the one-time Caddy site snippet
@@ -79,7 +79,7 @@ To start the Caddy setup over (e.g. a new domain), delete `/etc/caddy/kula-monit
 - `KULA_MOUNTS_DETECTION=host` selects host mounts. The configuration follows the official Kula Docker recommendation of `pid: host`, `network_mode: host` and a read-only `/proc` mount. Kula is unprivileged in the official image.
 - Docker container discovery may show raw cgroup/container IDs rather than convenient container names without the Docker socket. The Docker socket is intentionally **not** mounted because it grants elevated access to the host.
 - Host CPU steal measurements do not prove dedicated core ownership. Cross-correlate spikes with Minecraft TPS/MSPT and active workload.
-- Caddy `basic_auth` needs Caddy v2.8+. For custom Caddy setups that aren't managed via the standard Caddyfile, review `setup.sh` and integrate the site manually instead of running the Caddy setup blindly.
+- On Caddy older than 2.8 the snippet uses the old directive name `basicauth`; after a Caddy upgrade it keeps working (with a deprecation warning). For custom Caddy setups that aren't managed via the standard Caddyfile, review `setup.sh` and integrate the site manually instead of running the Caddy setup blindly.
 - The script refuses to run if something other than its own container already answers on port 27960 (e.g. a native Kula install).
 - The installer doesn't automatically change firewall rules or DNS.
 

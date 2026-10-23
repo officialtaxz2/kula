@@ -101,6 +101,12 @@ else
   unset PASSWORD
   [[ -n "$HASH" ]] || error "Caddy returned an empty password hash."
 
+  # basic_auth was added in Caddy 2.8; older releases only know the old name.
+  AUTH_DIRECTIVE="basic_auth"
+  if [[ "$(caddy version 2>/dev/null)" =~ ^v?2\.[0-7]\. ]]; then
+    AUTH_DIRECTIVE="basicauth"
+  fi
+
   # From here on, any failure or Ctrl-C restores the previous Caddy state.
   BACKUP=""
   RELOAD_ATTEMPTED=false
@@ -130,7 +136,7 @@ else
 # Managed by kula-monitor-stack setup.sh (do not commit this file to Git)
 ${DOMAIN} {
     encode zstd gzip
-    basic_auth {
+    ${AUTH_DIRECTIVE} {
         ${USERNAME} ${HASH}
     }
     reverse_proxy 127.0.0.1:27960
