@@ -42,7 +42,16 @@ sudo bash deploy/setup.sh
 
 By default the script **builds the image from this checkout** (`addons/docker/Dockerfile`), so `git pull` plus the script deploys exactly what is on your branch, including this fork's own changes. Each build is tagged with its commit (`kula-monitor:<commit>`), and the summary at the end shows which one is running. It then runs `docker compose up -d`, preserves the named `kula-monitor-data` volume, and leaves an existing Caddy site/password untouched. It does **not** install or upgrade Docker or Caddy. If the build fails, the running container is left as it is.
 
-The build runs on the server: it needs internet access for the Go and Alpine base images and the Go modules, takes a few minutes, and on small servers is worth watching for free disk space and memory. Old builds stay as tagged images; list them with `docker image ls kula-monitor` and remove the ones you no longer need with `docker image rm`.
+The build runs on the server: it needs internet access for the Go and Alpine base images and the Go modules, takes a few minutes, and on small servers is worth watching for free disk space and memory. Old builds stay as tagged images; list them with `docker image ls kula-monitor` and remove the ones you no longer need with `docker image rm`. The Go build cache grows too and can be cleared with `docker builder prune`.
+
+To roll back a build, either check out the older commit and rerun the script, or start an image that is still on the server:
+
+```bash
+git checkout <commit> && sudo bash deploy/setup.sh
+sudo KULA_IMAGE=kula-monitor:<commit> docker compose -f deploy/compose.yaml up -d --no-build
+```
+
+Run updates through `setup.sh`. A manual `docker compose -f deploy/compose.yaml up -d` without `KULA_IMAGE` builds this checkout as `kula-monitor:local`; it never relabels a build as the upstream image.
 
 To run the published upstream image instead (without this fork's changes), use the newest release or pin one from [Docker Hub](https://hub.docker.com/r/c0m4r/kula/tags):
 
@@ -51,7 +60,7 @@ sudo KULA_SOURCE=image bash deploy/setup.sh
 sudo KULA_VERSION=0.21.0 bash deploy/setup.sh
 ```
 
-`KULA_VERSION` implies `KULA_SOURCE=image`. The choice only applies to that run; the next plain run builds from the checkout again. Old images can be removed with `docker image prune`.
+`KULA_VERSION` implies `KULA_SOURCE=image`. If a pull fails, Compose may suggest `docker compose build`; in image mode that hint does not apply, check the tag and the network instead. The choice only applies to that run; the next plain run builds from the checkout again. Old images can be removed with `docker image prune`.
 
 ## Status, historical storage and logs
 

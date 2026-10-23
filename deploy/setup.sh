@@ -38,8 +38,9 @@ case "$KULA_SOURCE" in
     [[ -f "$REPO_DIR/go.mod" && -f "$REPO_DIR/addons/docker/Dockerfile" ]] \
       || error "No Kula source checkout at ${REPO_DIR}; use KULA_SOURCE=image for the published image."
     [[ -z "${KULA_VERSION:-}" ]] || error "KULA_VERSION only applies to KULA_SOURCE=image."
-    # Tag each build with its commit so the summary shows what is running.
-    REVISION="$(git -c safe.directory="$REPO_DIR" -C "$REPO_DIR" rev-parse --short=12 HEAD 2>/dev/null || true)"
+    # Tag each build with its commit (plus -dirty for uncommitted changes) so
+    # the summary shows what is running.
+    REVISION="$(git -c safe.directory="$REPO_DIR" -C "$REPO_DIR" describe --always --dirty --abbrev=12 2>/dev/null || true)"
     KULA_IMAGE="kula-monitor:${REVISION:-local}"
     ;;
   image)
@@ -71,10 +72,11 @@ PREVIOUS_IMAGE="$(image_of)"
 # A failed build or pull stops here and leaves the running container as it is.
 if [[ "$KULA_SOURCE" == "build" ]]; then
   info "Building ${KULA_IMAGE} from ${REPO_DIR} (persistent volume remains intact)"
-  compose build --pull
+  # The base images are pinned by digest, so no --pull: it only adds Docker Hub requests.
+  compose build || error "Build failed; the running container was left unchanged."
 else
   info "Pulling ${KULA_IMAGE} (persistent volume remains intact)"
-  compose pull
+  compose pull || error "Pull of ${KULA_IMAGE} failed; the running container was left unchanged."
 fi
 info "Starting ${KULA_IMAGE}"
 compose up -d --no-build

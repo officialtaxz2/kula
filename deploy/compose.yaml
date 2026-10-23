@@ -6,7 +6,9 @@
 name: kula-monitor
 services:
   kula:
-    image: ${KULA_IMAGE:-c0m4r/kula:latest}
+    # Without KULA_IMAGE a manual compose run builds and runs this checkout
+    # under a local name, never under the upstream tag.
+    image: ${KULA_IMAGE:-kula-monitor:local}
     build:
       context: ..
       dockerfile: addons/docker/Dockerfile
