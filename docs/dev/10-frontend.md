@@ -223,8 +223,9 @@ changing the header layout; only an explicit pin displays a timestamp there. Dra
 filtered from click-to-pin handling. Keyboard changes use a card-local status region. History
 transitions use one global region.
 
-Data controls are off by default. `chart-accessibility.js` receives a preference callback from
-chart creation, creates a Data button only after opt-in, and creates table/export DOM only on
+Data controls are on by default (`chart_data_controls` fallback in `settings.js`).
+`chart-accessibility.js` receives a preference callback from chart creation, creates a Data
+button only while that preference is enabled, and creates table/export DOM only on
 first use. Opt-out removes those nodes without removing canvas accessibility. The table preview
 shows up to 50 timestamps; CSV includes all represented observations in the selected viewport,
 with representative values and trusted extrema. Spreadsheet formula strings are escaped.

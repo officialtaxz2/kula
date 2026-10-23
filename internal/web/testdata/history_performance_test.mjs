@@ -88,7 +88,7 @@ try {
     assert.equal(result.keyboard_gesture, true);
     assert.equal(result.timezone_tooltip, true);
     assert.equal(result.accessible_alternatives, true);
-    assert.equal(result.data_controls_off_by_default, true);
+    assert.equal(result.data_controls_on_by_default, true);
     assert.equal(result.data_panel_lazy, true);
     assert.deepEqual(runtimeErrors, []);
     console.log(JSON.stringify(result));

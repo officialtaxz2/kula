@@ -100,7 +100,7 @@ const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
 // `body.light-mode` in both themes.
 export const SETTINGS = [
     { key: 'sticky_topbar', group: 'appearance', fallback: true, cls: 'no-sticky-topbar', whenFalse: true, input: 'set-sticky-topbar' },
-    { key: 'chart_data_controls', group: 'charts', fallback: false, cls: 'chart-data-controls', input: 'set-chart-data-controls' },
+    { key: 'chart_data_controls', group: 'charts', fallback: true, cls: 'chart-data-controls', input: 'set-chart-data-controls' },
     { key: 'chart_tooltip_details', group: 'charts', fallback: false, cls: 'chart-tooltip-details', input: 'set-chart-tooltip-details' },
     { key: 'all_series_envelopes', group: 'charts', fallback: false, cls: 'all-series-envelopes', input: 'set-all-series-envelopes' },
     { key: 'gauges', group: 'appearance', fallback: true, cls: 'no-gauges', whenFalse: true, input: 'set-gauges' },
